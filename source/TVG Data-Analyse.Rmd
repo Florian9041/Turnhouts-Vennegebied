@@ -1,0 +1,24 @@
+---
+title: "TVG Data-Analyse"
+author: "Florian Van Hecke"
+date: "2024-12-09"
+output: html_document
+---
+
+```{r}
+# Enable inbo r-universe
+options(repos = c(
+    inbo = 'https://inbo.r-universe.dev',
+    CRAN = 'https://cloud.r-project.org'))
+```
+
+```{r}
+data_locaties <- read.csv(file = "../data/TVG_gemeten_plassen.csv", sep = ";")
+data_TVG <- read.csv(file = "../data/FactResultAqua_bewerkt_2024-12-06.csv", sep = ";")
+locaties <- locaties$codeplas
+```
+
+```{r}
+
+```
+
