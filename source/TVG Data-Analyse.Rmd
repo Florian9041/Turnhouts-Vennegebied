@@ -10,13 +10,50 @@ output: html_document
 options(repos = c(
     inbo = 'https://inbo.r-universe.dev',
     CRAN = 'https://cloud.r-project.org'))
+library(dplyr)
+library(ggplot2)
 ```
 
 ```{r}
 data_locaties <- read.csv(file = "../data/TVG_gemeten_plassen.csv", sep = ";")
 data_TVG <- read.csv(file = "../data/FactResultAqua_bewerkt_2024-12-06.csv", sep = ";")
-locaties <- locaties$codeplas
-data_TVG$ResultFormattedNumeric <- as.numeric(data_TVG$ResultFormattedNumeric)
+locaties <- data_locaties$codeplas
+# gebruik locaties van TVG
+data_TVG <- data_TVG %>%
+  filter(CODE %in% locaties)
+unique(data_TVG$AquaComponent)
+data_TVG <- data_TVG[!is.na(data_TVG$AquaComponent),]
+```
+
+# voeg ResultCalc toe als kolom voor meetwaarden onder detectielimiet
+```{r}
+data_TVG <- data_TVG %>%
+  mutate(ResultCalc = ifelse(grepl("<", ResultFormatted), 
+                             as.numeric(gsub("<", "", ResultFormatted)) / 2, # als operator <, deel waarde door 2
+                             as.numeric(gsub(">", "", ResultFormatted)))) # als > of geen operator, neem waarde over
+```
+
+# voeg label toe als kolom
+```{r}
+data_TVG <- data_TVG %>%
+  mutate(label = paste0(AquaComponent, " (", AquaUnit, ")"))
+```
+
+
+```{r}
+Componenten <- unique(data_TVG$AquaComponent)
+
+for (Variabele in Componenten) {
+  data_figuur <- data_TVG %>%
+    filter(AquaComponent %in% Variabele)
+  figuur <- ggplot(data_figuur,
+                   aes(x = ResultCalc, y = codeplas)) +
+    geom_boxplot() +
+    labs(title = paste0("Turnhout variabele ",data_figuur$label, "\n")) +
+    ylab("Locatie") + xlab(paste0("Meetwaarde (", data_figuur$AquaUnit ,")"))
+  ggsave(figuur,
+         filename = paste0("./exports/boxplots/", "Turnhout_",Variabele, "_bw",".jpg"), width = 1080, height = 720, units = "px", scale = 3)
+}
 ```
 
 ```{r}
