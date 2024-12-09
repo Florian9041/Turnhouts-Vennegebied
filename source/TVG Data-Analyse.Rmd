@@ -33,8 +33,8 @@ library(tibble)
 
 # data inlezen
 ```{r}
-data_locaties <- read.csv(file = "../data/TVG_gemeten_plassen.csv", sep = ";")
-data_TVG <- read.csv(file = "../data/FactResultAqua_bewerkt_2024-12-06.csv", sep = ";")
+data_locaties <- read.csv(file = "./data/TVG_gemeten_plassen.csv", sep = ";")
+data_TVG <- read.csv(file = "./data/FactResultAqua_bewerkt_2024-12-06.csv", sep = ";")
 locaties <- data_locaties$codeplas
 # gebruik locaties van TVG
 data_TVG <- data_TVG %>%
@@ -200,7 +200,7 @@ maucha <- function(x, col = NULL,
     }
     
     if(labels){
-      lab <- c("K", "Na", "Ca", "Mg", "SO4", "Cl", "HCO3", "CO3")
+      lab <- c("K", "Na", "Ca", "Mg", "SO4", "Cl", "HCO3_OEP", "CO3")
       lab.pos.x <- coord.x[3, ]
       lab.pos.y <- coord.y[3, ]
       lab.pos.x[a < R] <- coord.poly.x[3, a < R]
@@ -260,7 +260,54 @@ ionenwide <- ionenwide %>% remove_rownames %>% column_to_rownames(var = "codepla
 maucha(ionenwide)
 ```
 
+### Maucha-diagram per locatie (figuur per maand)
+#### Maak dataset aan voor locatie x
+```{r}
+#"ANTMRK0204" "ANTTUR0094" "ANTTUR0305" "ANTMRK0177" "ANTRAV0014" "ANTRAV0175" "ANTRAV0188" "ANTRAV0208" "ANTTUR0022" "ANTTUR0046" "ANTTUR0270"
+#"ANTTUR0277" "ANTTUR0282" "ANTTUR0287" "ANTTUR0295" "ANTTUR0300" "ANTTUR0302" "ANTMRK0206" "ANTTUR0018" "ANTTUR0077" "ANTTUR0079" "ANTTUR0273"
+#"ANTTUR0292" "ANTTUR0297" "ANTTUR0299" "ANTRAV0122" "ANTRAV0381" "ANTRAV0211" "ANTTUR0065" "ANTTUR0082" "ANTOTH0015" "ANTRAV0052" "ANTARE0025"
+#"ANTRAV0230" "ANTTUR0257" "ANTARE0309" "ANTRAV0293" "ANTRAV0296" "ANTRAV0297" "ANTTUR0296" "ANTTUR0301" "ANTTUR0304" "ANTOTH0270" "ANTOTH0271"
+#"ANTBAA0036" "ANTOTH0306" "ANTRAV0369" "ANTOTH0324" "ANTTUR0674"
+locatie <- "ANTRAV0293"
 
+
+datamaucha <- data_TVG %>%
+  filter(AquaComponent %in% c("K", "Na", "Ca", "Mg", "SO4", "Cl", "HCO3_OEP", "CO3") & codeplas == locatie) %>%
+  group_by(AquaComponent, FieldSamplingDate) %>%
+  summarise(gemiddelde = mean(ResultCalc)) %>%
+  select(FieldSamplingDate, AquaComponent, gemiddelde)
+
+# to wide format
+datamauchawide <- pivot_wider(datamaucha, names_from = AquaComponent, values_from = gemiddelde)
+# kolommen in juiste volgorde (! belangrijk voor correct Maucha-diagram)
+datamauchawide <- datamauchawide %>%
+  select(FieldSamplingDate, K, Na, Ca, Mg, SO4, Cl, HCO3_OEP, CO3)
+
+# converteer kolom met datum staalname naar row.names voor maucha-functie
+datamauchawide <- datamauchawide %>% remove_rownames %>% column_to_rownames(var = "FieldSamplingDate")
+maucha(datamauchawide)
+
+```
+
+#### loop met maucha per locatie
+```{r}
+locaties <- unique(data_TVG$codeplas)
+for (locatie in locaties) {
+  # dataset voor locatie
+  data_ID <- data_TVG %>%
+  filter(AquaComponent %in% c("K", "Na", "Ca", "Mg", "SO4", "Cl", "HCO3_OEP", "CO3") & codeplas == locatie) %>%
+  group_by(AquaComponent, FieldSamplingDate) %>%
+  summarise(gemiddelde = mean(ResultCalc)) %>%
+  select(FieldSamplingDate, AquaComponent, gemiddelde)
+  
+  # data naar wide-format
+  data_wide <- pivot_wider(data_ID, names_from = AquaComponent, values_from = gemiddelde)
+  
+  # converteer kolom met datum staalname naar row.names voor maucha-functie
+  data_wide <- data_wide %>% remove_rownames %>% column_to_rownames(var = "FieldSamplingDate")
+  maucha(data_wide)
+}
+```
 
 # IR-EGV plot
 ```{r}
