@@ -16,6 +16,7 @@ options(repos = c(
 data_locaties <- read.csv(file = "../data/TVG_gemeten_plassen.csv", sep = ";")
 data_TVG <- read.csv(file = "../data/FactResultAqua_bewerkt_2024-12-06.csv", sep = ";")
 locaties <- locaties$codeplas
+data_TVG$ResultFormattedNumeric <- as.numeric(data_TVG$ResultFormattedNumeric)
 ```
 
 ```{r}
