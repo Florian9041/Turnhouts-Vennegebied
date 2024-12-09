@@ -49,15 +49,12 @@ data_TVG <- data_TVG %>%
   mutate(ResultCalc = ifelse(grepl("<", ResultFormatted), 
                              as.numeric(gsub("<", "", ResultFormatted)) / 2, # als operator <, deel waarde door 2
                              as.numeric(gsub(">", "", ResultFormatted)))) # als > of geen operator, neem waarde over
-```
-
-# voeg label toe als kolom
-```{r}
+# voeg label toe
 data_TVG <- data_TVG %>%
   mutate(label = paste0(AquaComponent, " (", AquaUnit, ")"))
 ```
 
-
+# boxplots per variabele
 ```{r}
 Componenten <- unique(data_TVG$AquaComponent)
 
@@ -262,6 +259,8 @@ ionenwide <- ionenwide %>% select(codeplas, K, Na, Ca, Mg, SO4, Cl, HCO3_OEP, CO
 ionenwide <- ionenwide %>% remove_rownames %>% column_to_rownames(var = "codeplas")
 maucha(ionenwide)
 ```
+
+
 
 # IR-EGV plot
 ```{r}
