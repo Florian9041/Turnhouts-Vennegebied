@@ -1,0 +1,19 @@
+---
+title: "TVG data-analyse"
+author: "Florian Van Hecke"
+date: "2024-12-09"
+output: html_document
+---
+
+```{r}
+locaties <- read.csv(file = "./data/")
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
