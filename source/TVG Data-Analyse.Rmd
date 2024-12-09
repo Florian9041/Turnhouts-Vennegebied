@@ -126,6 +126,17 @@ maak_plot_1var_loc <- function(dataset, component, title = NULL, xas = "Datum st
 }
 ```
 
+# Zuurtegraad
+```{r}
+data_TVG %>%
+  filter(AquaComponent %in% "pH_veld") %>%
+  group_by(codeplas) %>%
+  summarise(pH_min = min(ResultCalc, na.rm = TRUE),
+            pH_max = max(ResultCalc, na.rm = TRUE),
+            pH_bereik = paste(min(ResultCalc, na.rm = TRUE), "-", max(ResultCalc, na.rm = TRUE))) %>%
+  write.csv(file = "./exports/pH.csv")
+```
+
 
 # Maucha-diagram
 
@@ -268,7 +279,7 @@ maucha(ionenwide)
 #"ANTTUR0292" "ANTTUR0297" "ANTTUR0299" "ANTRAV0122" "ANTRAV0381" "ANTRAV0211" "ANTTUR0065" "ANTTUR0082" "ANTOTH0015" "ANTRAV0052" "ANTARE0025"
 #"ANTRAV0230" "ANTTUR0257" "ANTARE0309" "ANTRAV0293" "ANTRAV0296" "ANTRAV0297" "ANTTUR0296" "ANTTUR0301" "ANTTUR0304" "ANTOTH0270" "ANTOTH0271"
 #"ANTBAA0036" "ANTOTH0306" "ANTRAV0369" "ANTOTH0324" "ANTTUR0674"
-locatie <- "ANTRAV0293"
+locatie <- "ANTTUR0674"
 
 
 datamaucha <- data_TVG %>%
