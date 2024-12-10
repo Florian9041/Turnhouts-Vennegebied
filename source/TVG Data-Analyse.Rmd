@@ -154,9 +154,8 @@ data_TVG %>%
   write.csv(file = "./exports/O2_verz.csv")
 ```
 
-# Zoutparameters
+# Temperatuur
 ```{r}
-# Geleidbaarheid
 data_TVG %>%
   filter(AquaComponent %in% "EGV25_veld") %>%
   group_by(codeplas) %>%
@@ -164,11 +163,38 @@ data_TVG %>%
   write.csv(file = "./exports/EGV.csv")
 ```
 
+# Alkaliniteit
+```{r}
+data_TVG %>%
+  filter(AquaComponent %in% "alkaliniteit") %>%
+  group_by(codeplas) %>%
+  summarise(Alk_mean = mean(ResultCalc),
+            Alk_max = min(ResultCalc, na.rm = TRUE),
+            Alk_min = max(ResultCalc, na.rm = TRUE),
+            Alk_bereik = paste(min(ResultCalc, na.rm = TRUE), "-", max(ResultCalc, na.rm = TRUE))) %>%
+  write.csv(file = "./exports/Alka.csv")
+```
+
+
+# Zoutparameters
+```{r}
+# Geleidbaarheid
+data_TVG %>%
+  filter(AquaComponent %in% "T_veld") %>%
+  group_by(codeplas) %>%
+  summarise(Temp_max = max(ResultCalc)) %>%
+  write.csv(file = "./exports/Temp.csv")
+```
+
 # Stikstof
 ```{r}
 # NO2-N
-NO2_N <- data_TVG %>%
-  filter(AquaComponent %in% "NO2_N")
+data_TVG %>%
+  filter(AquaComponent %in% "NO2_N") %>%
+  group_by(codeplas) %>%
+  summarise(NO2_N_gem = mean(ResultCalc),
+            NO_2_max = max(ResultCalc)) %>%
+  write.csv(file = "./exports/NO2_N.csv")
 
 # NO3-N
 
