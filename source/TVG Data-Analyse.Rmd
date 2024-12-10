@@ -135,6 +135,46 @@ data_TVG %>%
             pH_max = max(ResultCalc, na.rm = TRUE),
             pH_bereik = paste(min(ResultCalc, na.rm = TRUE), "-", max(ResultCalc, na.rm = TRUE))) %>%
   write.csv(file = "./exports/pH.csv")
+
+
+```
+
+# Zuurstofcondities
+```{r}
+data_TVG %>%
+  filter(AquaComponent %in% "O2_veld") %>%
+  group_by(codeplas) %>%
+  summarise(O2_10p = quantile(ResultCalc,probs = 0.1)) %>%
+  write.csv(file = "./exports/O2_conc.csv")
+
+data_TVG %>%
+  filter(AquaComponent %in% "O2verz") %>%
+  group_by(codeplas) %>%
+  summarise(O2_verz_max = max(ResultCalc)) %>%
+  write.csv(file = "./exports/O2_verz.csv")
+```
+
+# Zoutparameters
+```{r}
+# Geleidbaarheid
+data_TVG %>%
+  filter(AquaComponent %in% "EGV25_veld") %>%
+  group_by(codeplas) %>%
+  summarise(EGV_90p = quantile(ResultCalc, probs = 0.9)) %>%
+  write.csv(file = "./exports/EGV.csv")
+```
+
+# Stikstof
+```{r}
+# NO2-N
+NO2_N <- data_TVG %>%
+  filter(AquaComponent %in% "NO2_N")
+
+# NO3-N
+
+
+# NH4-N
+
 ```
 
 
@@ -321,7 +361,52 @@ for (locatie in locaties) {
 ```
 
 # IR-EGV plot
+## referentie-punten
 ```{r}
+ref_punten <- data.frame(
+      location_ref = c("Li (Angeren)", "At (Witteveen)", "Th (Noordwijk)"),
+      Ca_ref = c(115, 0.4, 420),
+      Cl_ref = c(11, 3, 19100),
+      ec25_ref = c(651, 50.1, 52000), # in µS/cm
+      ir_ref = c(.95, .20, .04), # without units (in 0-1)
+      name_ref = c("Li", "At", "Th"))
+```
 
+## gemiddelde Cl en Ca concentraties per locatie
+```{r}
+IREGVdata <- data_TVG %>% 
+  filter(AquaComponent %in% c("Ca", "Cl", "EGV25_veld")) %>%
+  group_by(codeplas, AquaComponent) %>% summarise(gemiddelde = mean(ResultCalc))
+
+# naar wide format (componenten als kolommen)
+IREGVwide <- pivot_wider(IREGVdata, names_from = AquaComponent, values_from = gemiddelde)
+
+# bereken en voeg IR toe als kolom
+IREGVwide <- IREGVwide %>%
+  mutate(IR = ((Ca*2)/40.078) / (((Ca*2)/40.078) + (Cl/35.453)), name_ref = codeplas)
+
+```
+
+## plot IR_EGV diagram
+```{r}
+p1 <- ggplot(ref_punten, aes(x = ec25_ref, y = ir_ref, label = name_ref)) +
+  geom_point(size = 2) + 
+  scale_x_log10() + 
+  xlab("EGV (µS/cm)") + 
+  ylab("IR (%)") + 
+  scale_y_continuous(breaks = seq(0,1, by = 0.1)) + 
+  ggtitle("IR-EGV diagram Turnhout\n") + 
+  geom_text(hjust = - 0.5, vjust = - 0.5)
+# voeg locaties Kalmthout toe
+p1 + geom_point(data = IREGVwide, mapping = aes(x = EGV25_veld, y = IR), color = "red")
+```
+
+### plot Ionenratio
+```{r}
+IREGVwide %>%
+    ggplot(aes(x = IR, y = codeplas)) +
+    geom_boxplot() +
+    labs(title = "Ionenratio (%)\n") +
+    ylab("Locatie") + xlab("ratio (%)")
 ```
 
