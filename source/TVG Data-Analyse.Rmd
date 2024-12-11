@@ -41,6 +41,8 @@ data_TVG <- data_TVG %>%
   filter(CODE %in% locaties)
 unique(data_TVG$AquaComponent)
 data_TVG <- data_TVG[!is.na(data_TVG$AquaComponent),]
+data_TVG$FieldSamplingDate <- as.Date(data_TVG$FieldSamplingDate, format = "%Y-%m-%d")
+
 ```
 
 # voeg ResultCalc toe als kolom voor meetwaarden onder detectielimiet
@@ -139,14 +141,69 @@ data_TVG %>%
 
 ```
 
+# Helderheid
+```{r}
+# Secchi-diepte (SD_veld)
+data_TVG %>%
+  filter(AquaComponent %in% "SD_veld") %>%
+  mutate(month = format(FieldSamplingDate, "%m")) %>%
+  filter(month %in% c("04", "05", "06", "07", "08", "09")) %>%
+  group_by(codeplas) %>%
+  summarise(SD_zhjgem = mean(ResultCalc, na.rm = TRUE)) %>%
+  write.csv(file = "./exports/SD.csv")
+
+# Waterdiepte (WD_diepte)
+data_TVG %>%
+  filter(AquaComponent %in% "WD_veld") %>%
+  group_by(codeplas) %>%
+  summarise(WD_gem = mean(ResultCalc, na.rm = TRUE),
+            WD_max = max(ResultCalc, na.rm = TRUE),
+            WD_min = min(ResultCalc, na.rm = TRUE)) %>%
+  write.csv(file = "./exports/WD.csv")
+
+data_TVG %>%
+  filter(AquaComponent %in% "WD_veld") %>%
+  mutate(month = format(FieldSamplingDate, "%m")) %>%
+  filter(month %in% c("04", "05", "06", "07", "08", "09")) %>%
+  group_by(codeplas) %>%
+  summarise(WD_zhj = mean(ResultCalc, na.rm = TRUE)) %>%
+  write.csv(file = "./exports/WD_zhj.csv")
+
+# Zwevende stof (ZS_105 en ZS_550)
+data_TVG %>%
+  filter(AquaComponent %in% "ZS_105") %>%
+  mutate(month = format(FieldSamplingDate, "%m")) %>%
+  filter(month %in% c("04", "05", "06", "07", "08", "09")) %>%
+  group_by(codeplas) %>%
+  summarise(ZS105_zhjgem = mean(ResultCalc, na.rm = TRUE)) %>%
+  write.csv(file = "./exports/ZS105.csv")
+
+data_TVG %>%
+  filter(AquaComponent %in% "ZS_105") %>%
+  group_by(codeplas) %>%
+  summarise(ZS105_gem = mean(ResultCalc, na.rm = TRUE)) %>%
+  write.csv(file = "./exports/ZS105_gem.csv")
+
+# Humuszuren (absorptie_440)
+data_TVG %>%
+  filter(AquaComponent %in% "absorptie_440") %>%
+  group_by(codeplas) %>%
+  summarise(ABS440_gem = mean(ResultCalc, na.rm = TRUE)) %>%
+  write.csv(file = "./exports/abs440.csv")
+
+```
+
+
 # Zuurstofcondities
 ```{r}
+# concentratie
 data_TVG %>%
   filter(AquaComponent %in% "O2_veld") %>%
   group_by(codeplas) %>%
   summarise(O2_10p = quantile(ResultCalc,probs = 0.1)) %>%
   write.csv(file = "./exports/O2_conc.csv")
 
+# verzadiging
 data_TVG %>%
   filter(AquaComponent %in% "O2verz") %>%
   group_by(codeplas) %>%
@@ -163,8 +220,9 @@ data_TVG %>%
   write.csv(file = "./exports/EGV.csv")
 ```
 
-# Alkaliniteit
+# Alkaliniteit, Calcium
 ```{r}
+# alkaliniteit
 data_TVG %>%
   filter(AquaComponent %in% "alkaliniteit") %>%
   group_by(codeplas) %>%
@@ -173,6 +231,14 @@ data_TVG %>%
             Alk_min = max(ResultCalc, na.rm = TRUE),
             Alk_bereik = paste(min(ResultCalc, na.rm = TRUE), "-", max(ResultCalc, na.rm = TRUE))) %>%
   write.csv(file = "./exports/Alka.csv")
+
+# calcium
+data_TVG %>%
+  filter(AquaComponent %in% "Ca") %>%
+  group_by(codeplas) %>%
+  summarise(Ca_max = max(ResultCalc, na.rm = TRUE)) %>%
+  write.csv(file = "./exports/Calcium.csv")
+
 ```
 
 
@@ -184,6 +250,35 @@ data_TVG %>%
   group_by(codeplas) %>%
   summarise(Temp_max = max(ResultCalc)) %>%
   write.csv(file = "./exports/Temp.csv")
+
+# Sulfaat (SO4)
+data_TVG %>%
+  filter(AquaComponent %in% "SO4") %>%
+  group_by(codeplas) %>%
+  summarise(SO4_gem = mean(ResultCalc, na.rm = TRUE)) %>%
+  write.csv(file = "./exports/SO4.csv")
+
+# Natrium
+data_TVG %>%
+  filter(AquaComponent %in% "Na") %>%
+  group_by(codeplas) %>%
+  summarise(Na_max = max(ResultCalc, na.rm = TRUE)) %>%
+  write.csv(file = "./exports/Na.csv")
+
+# Chloride
+data_TVG %>%
+  filter(AquaComponent %in% "Cl") %>%
+  group_by(codeplas) %>%
+  summarise(Cl_max = max(ResultCalc, na.rm = TRUE),
+            Cl_90p = quantile(ResultCalc, probs = 0.9)) %>%
+  write.csv(file = "./exports/Cl.csv")
+
+# saliniteit
+data_TVG %>%
+  filter(AquaComponent %in% "sal_veld") %>%
+  group_by(codeplas) %>%
+  summarise(sal_max = max(ResultCalc, na.rm = TRUE)) %>%
+  write.csv(file = "./exports/Sal.csv")
 ```
 
 # Stikstof
