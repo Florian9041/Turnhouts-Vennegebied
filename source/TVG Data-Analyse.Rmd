@@ -33,16 +33,20 @@ library(tibble)
 
 # data inlezen
 ```{r}
-data_locaties <- read.csv(file = "./data/TVG_gemeten_plassen.csv", sep = ";")
-data_TVG <- read.csv(file = "./data/FactResultAqua_bewerkt_2024-12-06.csv", sep = ";")
+data_locaties <- read.csv(file = "../data/TVG_gemeten_plassen.csv", sep = ";")
+data_TVG <- read.csv(file = "../data/FactResultAqua_bewerkt_2024-12-06.csv", sep = ";")
 locaties <- data_locaties$codeplas
 # gebruik locaties van TVG
 data_TVG <- data_TVG %>%
-  filter(CODE %in% locaties)
+  filter(codeplas %in% locaties)
 unique(data_TVG$AquaComponent)
 data_TVG <- data_TVG[!is.na(data_TVG$AquaComponent),]
 data_TVG$FieldSamplingDate <- as.Date(data_TVG$FieldSamplingDate, format = "%Y-%m-%d")
 
+habitattype <- data_TVG %>%
+  select(codeplas, HabtypeVel) %>%
+  unique() %>%
+  write.csv2(file = "../exports/habitattype.csv")
 ```
 
 # voeg ResultCalc toe als kolom voor meetwaarden onder detectielimiet
@@ -69,7 +73,7 @@ for (Variabele in Componenten) {
     labs(title = paste0("Turnhout variabele ",data_figuur$label, "\n")) +
     ylab("Locatie") + xlab(paste0("Meetwaarde (", data_figuur$AquaUnit ,")"))
   ggsave(figuur,
-         filename = paste0("./exports/boxplots/", "Turnhout_",Variabele, "_bw",".jpg"), width = 1080, height = 720, units = "px", scale = 3)
+         filename = paste0("../exports/boxplots/", "Turnhout_",Variabele, "_bw",".jpg"), width = 1080, height = 720, units = "px", scale = 3)
 }
 ```
 
@@ -136,7 +140,7 @@ data_TVG %>%
   summarise(pH_min = min(ResultCalc, na.rm = TRUE),
             pH_max = max(ResultCalc, na.rm = TRUE),
             pH_bereik = paste(min(ResultCalc, na.rm = TRUE), "-", max(ResultCalc, na.rm = TRUE))) %>%
-  write.csv(file = "./exports/pH.csv")
+  write.csv2(file = "../exports/pH.csv")
 
 
 ```
@@ -150,7 +154,7 @@ data_TVG %>%
   filter(month %in% c("04", "05", "06", "07", "08", "09")) %>%
   group_by(codeplas) %>%
   summarise(SD_zhjgem = mean(ResultCalc, na.rm = TRUE)) %>%
-  write.csv(file = "./exports/SD.csv")
+  write.csv22(file = "../exports/SD.csv")
 
 # Waterdiepte (WD_diepte)
 data_TVG %>%
@@ -159,7 +163,7 @@ data_TVG %>%
   summarise(WD_gem = mean(ResultCalc, na.rm = TRUE),
             WD_max = max(ResultCalc, na.rm = TRUE),
             WD_min = min(ResultCalc, na.rm = TRUE)) %>%
-  write.csv(file = "./exports/WD.csv")
+  write.csv2(file = "../exports/WD.csv")
 
 data_TVG %>%
   filter(AquaComponent %in% "WD_veld") %>%
@@ -167,7 +171,7 @@ data_TVG %>%
   filter(month %in% c("04", "05", "06", "07", "08", "09")) %>%
   group_by(codeplas) %>%
   summarise(WD_zhj = mean(ResultCalc, na.rm = TRUE)) %>%
-  write.csv(file = "./exports/WD_zhj.csv")
+  write.csv2(file = "../exports/WD_zhj.csv")
 
 # Zwevende stof (ZS_105 en ZS_550)
 data_TVG %>%
@@ -176,20 +180,20 @@ data_TVG %>%
   filter(month %in% c("04", "05", "06", "07", "08", "09")) %>%
   group_by(codeplas) %>%
   summarise(ZS105_zhjgem = mean(ResultCalc, na.rm = TRUE)) %>%
-  write.csv(file = "./exports/ZS105.csv")
+  write.csv2(file = "../exports/ZS105.csv")
 
 data_TVG %>%
   filter(AquaComponent %in% "ZS_105") %>%
   group_by(codeplas) %>%
   summarise(ZS105_gem = mean(ResultCalc, na.rm = TRUE)) %>%
-  write.csv(file = "./exports/ZS105_gem.csv")
+  write.csv2(file = "../exports/ZS105_gem.csv")
 
 # Humuszuren (absorptie_440)
 data_TVG %>%
   filter(AquaComponent %in% "absorptie_440") %>%
   group_by(codeplas) %>%
   summarise(ABS440_gem = mean(ResultCalc, na.rm = TRUE)) %>%
-  write.csv(file = "./exports/abs440.csv")
+  write.csv2(file = "../exports/abs440.csv")
 
 ```
 
@@ -201,23 +205,23 @@ data_TVG %>%
   filter(AquaComponent %in% "O2_veld") %>%
   group_by(codeplas) %>%
   summarise(O2_10p = quantile(ResultCalc,probs = 0.1)) %>%
-  write.csv(file = "./exports/O2_conc.csv")
+  write.csv2(file = "../exports/O2_conc.csv")
 
 # verzadiging
 data_TVG %>%
   filter(AquaComponent %in% "O2verz") %>%
   group_by(codeplas) %>%
   summarise(O2_verz_max = max(ResultCalc)) %>%
-  write.csv(file = "./exports/O2_verz.csv")
+  write.csv2(file = "../exports/O2_verz.csv")
 ```
 
 # Temperatuur
 ```{r}
 data_TVG %>%
-  filter(AquaComponent %in% "EGV25_veld") %>%
+  filter(AquaComponent %in% "T_veld") %>%
   group_by(codeplas) %>%
-  summarise(EGV_90p = quantile(ResultCalc, probs = 0.9)) %>%
-  write.csv(file = "./exports/EGV.csv")
+  summarise(Temp_max = max(ResultCalc, na.rm = TRUE)) %>%
+  write.csv2(file = "../exports/Temp_veld.csv")
 ```
 
 # Alkaliniteit, Calcium
@@ -230,14 +234,14 @@ data_TVG %>%
             Alk_max = min(ResultCalc, na.rm = TRUE),
             Alk_min = max(ResultCalc, na.rm = TRUE),
             Alk_bereik = paste(min(ResultCalc, na.rm = TRUE), "-", max(ResultCalc, na.rm = TRUE))) %>%
-  write.csv(file = "./exports/Alka.csv")
+  write.csv2(file = "../exports/Alka.csv")
 
 # calcium
 data_TVG %>%
   filter(AquaComponent %in% "Ca") %>%
   group_by(codeplas) %>%
   summarise(Ca_max = max(ResultCalc, na.rm = TRUE)) %>%
-  write.csv(file = "./exports/Calcium.csv")
+  write.csv2(file = "../exports/Calcium.csv")
 
 ```
 
@@ -249,21 +253,21 @@ data_TVG %>%
   filter(AquaComponent %in% "T_veld") %>%
   group_by(codeplas) %>%
   summarise(Temp_max = max(ResultCalc)) %>%
-  write.csv(file = "./exports/Temp.csv")
+  write.csv2(file = "../exports/Temp.csv")
 
 # Sulfaat (SO4)
 data_TVG %>%
   filter(AquaComponent %in% "SO4") %>%
   group_by(codeplas) %>%
   summarise(SO4_gem = mean(ResultCalc, na.rm = TRUE)) %>%
-  write.csv(file = "./exports/SO4.csv")
+  write.csv2(file = "../exports/SO4.csv")
 
 # Natrium
 data_TVG %>%
   filter(AquaComponent %in% "Na") %>%
   group_by(codeplas) %>%
   summarise(Na_max = max(ResultCalc, na.rm = TRUE)) %>%
-  write.csv(file = "./exports/Na.csv")
+  write.csv2(file = "../exports/Na.csv")
 
 # Chloride
 data_TVG %>%
@@ -271,14 +275,14 @@ data_TVG %>%
   group_by(codeplas) %>%
   summarise(Cl_max = max(ResultCalc, na.rm = TRUE),
             Cl_90p = quantile(ResultCalc, probs = 0.9)) %>%
-  write.csv(file = "./exports/Cl.csv")
+  write.csv2(file = "../exports/Cl.csv")
 
 # saliniteit
 data_TVG %>%
   filter(AquaComponent %in% "sal_veld") %>%
   group_by(codeplas) %>%
   summarise(sal_max = max(ResultCalc, na.rm = TRUE)) %>%
-  write.csv(file = "./exports/Sal.csv")
+  write.csv2(file = "../exports/Sal.csv")
 ```
 
 # Stikstof
@@ -289,7 +293,7 @@ data_TVG %>%
   group_by(codeplas) %>%
   summarise(NO2_N_gem = mean(ResultCalc),
             NO_2_max = max(ResultCalc)) %>%
-  write.csv(file = "./exports/NO2_N.csv")
+  write.csv2(file = "../exports/NO2_N.csv")
 
 # NO3-N
 
