@@ -201,7 +201,16 @@ data_TVG %>%
   filter(AquaComponent %in% "absorptie_440") %>%
   group_by(codeplas) %>%
   summarise(ABS440_gem = mean(ResultCalc, na.rm = TRUE)) %>%
-  write.csv2(file = "../exports/abs440.csv")
+  write.csv(file = "./exports/abs440_gem.csv")
+
+data_TVG %>%
+  filter(AquaComponent %in% "absorptie_440") %>%
+  mutate(month = format(FieldSamplingDate, "%m")) %>%
+  filter(month %in% c("04", "05", "06", "07", "08", "09")) %>%
+  group_by(codeplas) %>%
+  summarise(ABS440_zhjgem = mean(ResultCalc, na.rm = TRUE)) %>%
+  write.csv(file = "./exports/abs440_zhj.csv")
+
 
 # chlorofyl-a
 data_TVG %>%
@@ -250,7 +259,7 @@ data_TVG %>%
             Alk_max = min(ResultCalc, na.rm = TRUE),
             Alk_min = max(ResultCalc, na.rm = TRUE),
             Alk_bereik = paste(min(ResultCalc, na.rm = TRUE), "-", max(ResultCalc, na.rm = TRUE))) %>%
-  write.csv2(file = "../exports/Alka.csv")
+  write.csv(file = "./exports/Alka.csv")
 
 # calcium
 data_TVG %>%
@@ -301,7 +310,8 @@ data_TVG %>%
   write.csv2(file = "../exports/Sal.csv")
 ```
 
-# Stikstof
+
+# Nutriënten
 ```{r}
 # Totale Stikstof - TN & Totale Fosfor - TP
 data_TVG %>%
@@ -310,21 +320,76 @@ data_TVG %>%
   filter(month %in% c("04", "05", "06", "07", "08", "09")) %>%
   group_by(codeplas, AquaComponent) %>%
   summarise(zhjgem = mean(ResultCalc)) %>%
-  write.csv2(file = "../exports/TN_TP.csv")
+  write.csv(file = "./exports/TN_TP.csv")
 
+# NO3-N
+data_TVG %>%
+  filter(AquaComponent %in% "NO3_N") %>%
+  mutate(month = format(FieldSamplingDate, "%m")) %>%
+  filter(month %in% c("04", "05", "06", "07", "08", "09")) %>%
+  group_by(codeplas) %>%
+  summarise(NO3_N_gem = mean(ResultCalc)) %>%
+  write.csv(file = "./exports/NO3_N.csv")
 
 # NO2-N
 data_TVG %>%
   filter(AquaComponent %in% "NO2_N") %>%
+  mutate(month = format(FieldSamplingDate, "%m")) %>%
+  filter(month %in% c("04", "05", "06", "07", "08", "09")) %>%
   group_by(codeplas) %>%
-  summarise(NO2_N_gem = mean(ResultCalc),
-            NO_2_max = max(ResultCalc)) %>%
-  write.csv2(file = "../exports/NO2_N.csv")
-
-# NO3-N
-
+  summarise(NO2_N_gem = mean(ResultCalc)) %>%
+  write.csv(file = "./exports/NO2_N.csv")
 
 # NH4-N
+data_TVG %>%
+  filter(AquaComponent %in% "NH4_N") %>%
+  mutate(month = format(FieldSamplingDate, "%m")) %>%
+  filter(month %in% c("04", "05", "06", "07", "08", "09")) %>%
+  group_by(codeplas) %>%
+  summarise(NH4_N_gem = mean(ResultCalc)) %>%
+  write.csv(file = "./exports/NH4_N.csv")
+
+# PO4-P
+data_TVG %>%
+  filter(AquaComponent %in% "PO4_P") %>%
+  mutate(month = format(FieldSamplingDate, "%m")) %>%
+  filter(month %in% c("04", "05", "06", "07", "08", "09")) %>%
+  group_by(codeplas) %>%
+  summarise(PO4_P_zhjgem = mean(ResultCalc)) %>%
+  write.csv(file = "./exports/PO4_P.csv")
+```
+
+# Anorganische en organische stikstof
+```{r}
+# voeg anorganische stikstof toe als variabele in tabel (N_anorg = NH4_N + NO3_N + NO2_N)
+N_anorg <- data_TVG %>% group_by(codeplas, FieldSamplingDate) %>% 
+  filter(AquaComponent %in% c("NH4_N", "NO3_N", "NO2_N")) %>% 
+  summarise(N_anorg = sum(ResultCalc))
+N_anorg <- N_anorg %>% 
+  rename(ResultCalc = N_anorg)
+N_anorg$label <- "N_anorg (mg N/l)"
+N_anorg$AquaComponent <- "N_anorg"
+N_anorg$AquaUnit <- "mg N/l"
+N_anorg$Component <- "N_anorg"
+data_met_N_anorg <- bind_rows(data_TVG, N_anorg)
+
+# zomerhalfjaargemiddelde
+data_met_N_anorg %>%
+  filter(AquaComponent %in% "N_anorg") %>%
+  mutate(month = format(FieldSamplingDate, "%m")) %>%
+  filter(month %in% c("04", "05", "06", "07", "08", "09")) %>%
+  group_by(codeplas) %>%
+  summarise(zhjgem = mean(ResultCalc)) %>%
+  write.csv(file = "./exports/N_anorg_zhj.csv")
+
+# maximum (van Calster)
+data_met_N_anorg %>%
+  filter(AquaComponent %in% "N_anorg") %>%
+  group_by(codeplas) %>%
+  summarise(gem = mean(ResultCalc)) %>%
+  write.csv(file = "./exports/N_anorg_gem.csv")
+
+write.csv(data_met_N_anorg, file = "./data/Data_Kalmthout_met_Nanorg.csv")
 
 ```
 
