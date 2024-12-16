@@ -28,7 +28,7 @@ library(dplyr)
 library(ggplot2)
 library(tidyr)
 library(tibble)
-
+library(scales)
 ```
 
 # data inlezen
@@ -142,7 +142,15 @@ data_TVG %>%
             pH_bereik = paste(min(ResultCalc, na.rm = TRUE), "-", max(ResultCalc, na.rm = TRUE))) %>%
   write.csv2(file = "../exports/pH.csv")
 
+locaties <- unique(data_TVG$codeplas)
 
+for (ID in locaties) {
+  figuur <- maak_plot_1var(data_TVG %>% filter(codeplas %in% ID), "pH_veld" , paste("Zuurtegraad", ID), yas = "Meetwaarde") +
+  scale_y_continuous(breaks = pretty_breaks(n = 10))
+  print(figuur)
+  ggsave(plot = figuur,
+         filename = paste0("./exports/pH/", ID,"_pH", ".jpg"), width = 1080, height = 720, units = "px", scale = 3)
+}
 ```
 
 # Helderheid
@@ -285,7 +293,7 @@ data_TVG %>%
   filter(AquaComponent %in% "SO4") %>%
   group_by(codeplas) %>%
   summarise(SO4_gem = mean(ResultCalc, na.rm = TRUE)) %>%
-  write.csv2(file = "../exports/SO4.csv")
+  write.csv(file = "./exports/SO4.csv")
 
 # Natrium
 data_TVG %>%
@@ -300,7 +308,7 @@ data_TVG %>%
   group_by(codeplas) %>%
   summarise(Cl_max = max(ResultCalc, na.rm = TRUE),
             Cl_90p = quantile(ResultCalc, probs = 0.9, na.rm = TRUE)) %>%
-  write.csv2(file = "../exports/Cl.csv")
+  write.csv(file = "./exports/Cl.csv")
 
 # saliniteit
 data_TVG %>%
