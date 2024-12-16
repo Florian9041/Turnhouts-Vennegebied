@@ -145,7 +145,7 @@ data_TVG %>%
 locaties <- unique(data_TVG$codeplas)
 
 for (ID in locaties) {
-  figuur <- maak_plot_1var(data_TVG %>% filter(codeplas %in% ID), "pH_veld" , paste("Zuurtegraad", ID), yas = "Meetwaarde") +
+  figuur <- maak_plot_1var(data_TVG %>% filter(codeplas %in% ID), "pH_veld" , paste("Zuurtegraad (pH)", ID, "\n"), yas = "Meetwaarde") +
   scale_y_continuous(breaks = pretty_breaks(n = 10))
   print(figuur)
   ggsave(plot = figuur,
