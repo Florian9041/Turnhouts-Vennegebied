@@ -332,13 +332,30 @@ data_TVG %>%
   summarise(Na_max = max(ResultCalc, na.rm = TRUE)) %>%
   write.csv2(file = "../exports/Na.csv")
 
+data_TVG %>%
+  filter(AquaComponent %in% "Na") %>%
+  mutate(month = format(FieldSamplingDate, "%m")) %>%
+  filter(month %in% c("04", "05", "06", "07", "08", "09")) %>%
+  group_by(codeplas) %>%
+  summarise(Na_max_zomer = max(ResultCalc, na.rm = TRUE)) %>%
+  write.csv2(file = "../exports/Na_max_zomer.csv")
+
 # Chloride
 data_TVG %>%
   filter(AquaComponent %in% "Cl") %>%
   group_by(codeplas) %>%
   summarise(Cl_max = max(ResultCalc, na.rm = TRUE),
             Cl_90p = quantile(ResultCalc, probs = 0.9, na.rm = TRUE)) %>%
-  write.csv(file = "./exports/Cl.csv")
+  write.csv2(file = "../exports/Cl.csv")
+
+data_TVG %>%
+  filter(AquaComponent %in% "Cl") %>%
+  mutate(month = format(FieldSamplingDate, "%m")) %>%
+  filter(month %in% c("04", "05", "06", "07", "08", "09")) %>%
+  group_by(codeplas) %>%
+  summarise(Cl_max_zomer = max(ResultCalc, na.rm = TRUE)) %>%
+  write.csv2(file = "../exports/Cl_max_zomer.csv")
+
 
 # saliniteit
 data_TVG %>%
