@@ -46,7 +46,7 @@ data_TVG$FieldSamplingDate <- as.Date(data_TVG$FieldSamplingDate, format = "%Y-%
 habitattype <- data_TVG %>%
   select(codeplas, HabtypeVel) %>%
   unique() %>%
-  write.csv2(file = "./exports/habitattype.csv")
+  write.csv2(file = "../exports/habitattype.csv")
 ```
 
 # voeg ResultCalc toe als kolom voor meetwaarden onder detectielimiet
