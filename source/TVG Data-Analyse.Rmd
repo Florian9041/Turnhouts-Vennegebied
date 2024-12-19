@@ -43,6 +43,10 @@ unique(data_TVG$AquaComponent)
 data_TVG <- data_TVG[!is.na(data_TVG$AquaComponent),]
 data_TVG$FieldSamplingDate <- as.Date(data_TVG$FieldSamplingDate, format = "%Y-%m-%d")
 
+# M als eenheid omzetten naar m
+data_TVG$AquaUnit[data_TVG$AquaUnit == "M"] <- "m"
+data_TVG$Unit[data_TVG$Unit == "M"] <- "m"
+
 #habitattype <- data_TVG %>%
 #  select(codeplas, HabtypeVel) %>%
 #  unique() %>%
@@ -107,7 +111,7 @@ for (Variabele in Componenten) {
 save_plot <- function(dataset, component, naam, title = NULL, xas = NULL, yas = NULL){
   figuur <- dataset %>%
     filter(AquaComponent %in% component) %>%  
-    ggplot(aes(x = FieldSamplingDate, y = ResultCalc, color = Label, linetype = CODE)) +
+    ggplot(aes(x = FieldSamplingDate, y = ResultCalc, color = Label, linetype = codeplas)) +
     scale_x_date(date_breaks = "1 month", date_labels = "%b-%Y") + # visualiseert data per maand in format maand-jaar
     geom_line(linewidth = 1) +
     geom_point() +
@@ -146,7 +150,7 @@ maak_plot_1var <- function(dataset, component, title = NULL, xas = "Datum staaln
 maak_plot_1var_loc <- function(dataset, component, title = NULL, xas = "Datum staalname", yas = NULL){
   figuur <- dataset %>%
     filter(AquaComponent %in% component) %>%  
-    ggplot(aes(x = FieldSamplingDate, y = ResultCalc, color = CODE)) +
+    ggplot(aes(x = FieldSamplingDate, y = ResultCalc, color = codeplas)) +
     scale_x_date(date_breaks = "1 month", date_labels = "%b-%Y") + # visualiseert data per maand in format maand-jaar
     scale_y_continuous(breaks = pretty_breaks(n = 10)) +
     geom_line(linewidth = 1) +
@@ -169,15 +173,38 @@ data_TVG %>%
 locaties <- unique(data_TVG$codeplas)
 
 for (ID in locaties) {
-  figuur <- maak_plot_1var(data_TVG %>% filter(codeplas %in% ID), "pH_veld" , paste("Zuurtegraad (pH)", ID, "\n"), yas = "Meetwaarde") +
+  figuur <- maak_plot_1var(data_TVG %>% filter(codeplas %in% ID), "pH_veld" , paste("Zuurtegraad (pH)", ID, "_meetreeks\n"), yas = "Meetwaarde") +
   scale_y_continuous(breaks = pretty_breaks(n = 10))
   print(figuur)
   ggsave(plot = figuur,
          filename = paste0("./exports/pH/", ID,"_pH", ".jpg"), width = 1080, height = 720, units = "px", scale = 3)
 }
 
-maak_plot_1var(data_TVG %>% filter(codeplas %in% "ANTRAV0369"), "pH_veld" , paste("Zuurtegraad (pH)", "ANTRAV0369", "\n"), yas = "Meetwaarde") +
-  scale_y_continuous(breaks = pretty_breaks(n = 10)) + theme_light()
+
+# zuurtegraad en absorptie
+
+## voor 2024
+locaties <- unique(data_TVG$codeplas[data_TVG$meetreeks == "2024"])
+
+for (ID in locaties) {
+  figuur <- maak_plot(data_TVG %>% filter(codeplas %in% ID & meetreeks == "2024"), c("pH_veld", "absorptie_440") , paste("Zuurtegraad en humuszuren", ID, "_meetreeks2024\n"), yas = "Meetwaarde (log10)") +
+  scale_y_log10()
+  print(figuur)
+  ggsave(plot = figuur,
+         filename = paste0("./exports/pH_abs_2024/", ID,"_pH_abs_2024", ".jpg"), width = 1080, height = 720, units = "px", scale = 3)
+}
+
+## voor 2022-2023
+locaties <- unique(data_TVG$codeplas[data_TVG$meetreeks == "2022-2023"])
+
+for (ID in locaties) {
+  figuur <- maak_plot(data_TVG %>% filter(codeplas %in% ID & meetreeks == "2022-2023"), c("pH_veld", "absorptie_440") , paste("Zuurtegraad en humuszuren", ID, "_meetreeks2022-2023\n"), yas = "Meetwaarde (log10)") +
+  scale_y_log10()
+  print(figuur)
+  ggsave(plot = figuur,
+         filename = paste0("./exports/pH_abs_2022_2023/", ID,"_pH_abs_2022_2023", ".jpg"), width = 1080, height = 720, units = "px", scale = 3)
+}
+
 ```
 
 # Helderheid
@@ -231,6 +258,28 @@ data_TVG %>%
   summarise(ZS105_gem = mean(ResultCalc, na.rm = TRUE)) %>%
   write.csv2(file = "../exports/ZS105_gem.csv")
 
+## voor 2024
+locaties <- unique(data_TVG$codeplas[data_TVG$meetreeks == "2024"])
+
+for (ID in locaties) {
+  figuur <- maak_plot(data_TVG %>% filter(codeplas %in% ID & meetreeks == "2024") , c("ZS_105", "ZS_550") , paste("Zwevende stof (550 & 105°C) meetreeks 2024", ID, "\n"), yas = "Meetwaarde (g/L)") +
+  scale_y_continuous(breaks = pretty_breaks(n = 10, min.n = 10))
+  print(figuur)
+  ggsave(plot = figuur,
+         filename = paste0("./exports/ZS550-105_2024/", ID,"_ZS550_105_2024", ".jpg"), width = 1080, height = 720, units = "px", scale = 3)
+}
+
+## voor 2022-2023
+locaties <- unique(data_TVG$codeplas[data_TVG$meetreeks == "2022-2023"])
+
+for (ID in locaties) {
+  figuur <- maak_plot(data_TVG %>% filter(codeplas %in% ID & meetreeks == "2022-2023"), c("ZS_105", "ZS_550") , paste("Zwevende stof (550 & 105°C) meetreeks 2022-2023", ID, "\n"), yas = "Meetwaarde (g/L)") +
+  scale_y_continuous(breaks = pretty_breaks(n = 10, min.n = 10))
+  print(figuur)
+  ggsave(plot = figuur,
+         filename = paste0("./exports/ZS550-105_2022_2023/", ID,"_ZS550_105_2022_2023", ".jpg"), width = 1080, height = 720, units = "px", scale = 3)
+}
+
 # Humuszuren (absorptie_440)
 data_TVG %>%
   filter(AquaComponent %in% "absorptie_440") %>%
@@ -255,6 +304,29 @@ data_TVG %>%
   group_by(codeplas) %>%
   summarise(chla_zhjgem = mean(ResultCalc, na.rm = TRUE)) %>%
   write.csv2(file = "../exports/chl_a.csv")
+
+# chl_a, SD (WD) en absorptie_440
+## voor 2024
+locaties <- unique(data_TVG$codeplas[data_TVG$meetreeks == "2024"])
+
+for (ID in locaties) {
+  figuur <- maak_plot(data_TVG %>% filter(codeplas %in% ID & meetreeks == "2024") , c("chl_a", "SD_veld", "WD_veld", "absorptie_440", "ZS_105") , paste("Parameters helderheid meetreeks 2024", ID, "\n"), yas = "Meetwaarde (log10)") +
+  scale_y_log10()
+  print(figuur)
+  ggsave(plot = figuur,
+         filename = paste0("./exports/Helderheid2024/", ID,"_Helderheid_2024", ".jpg"), width = 1080, height = 720, units = "px", scale = 3)
+}
+
+## voor 2022-2023
+locaties <- unique(data_TVG$codeplas[data_TVG$meetreeks == "2022-2023"])
+
+for (ID in locaties) {
+  figuur <- maak_plot(data_TVG %>% filter(codeplas %in% ID & meetreeks == "2022-2023") , c("chl_a", "SD_veld", "WD_veld", "absorptie_440", "ZS_105") , paste("Parameters helderheid meetreeks 2022-2023", ID, "\n"), yas = "Meetwaarde (log10)") +
+  scale_y_log10()
+  print(figuur)
+  ggsave(plot = figuur,
+         filename = paste0("./exports/Helderheid2022_2023/", ID,"_Helderheid_2022_2023", ".jpg"), width = 1080, height = 720, units = "px", scale = 3)
+}
 ```
 
 
