@@ -133,6 +133,17 @@ maak_plot <- function(dataset, component, title = NULL, xas = NULL, yas = NULL){
   figuur
 }
 
+## met fill (stikstofplots)
+maak_plot_area <- function(dataset, component, title = NULL, xas = NULL, yas = NULL){
+  figuur <- dataset %>%
+    filter(AquaComponent %in% component) %>%  
+    ggplot(aes(x = FieldSamplingDate, y = ResultCalc, fill = label)) +
+    scale_x_date(date_breaks = "1 month", date_labels = "%b-%Y") + # visualiseert data per maand in format maand-jaar
+    geom_line() +
+    geom_area(position = "identity", alpha = 0.6) +
+    labs(title = title) + xlab(xas) + ylab(yas)
+  figuur
+}
 # plots genereren voor 1 variabele (voor 1 locatie)
 maak_plot_1var <- function(dataset, component, title = NULL, xas = "Datum staalname", yas = NULL){
   figuur <- dataset %>%
@@ -525,6 +536,15 @@ N_anorg$label <- "N_anorg (mg N/l)"
 N_anorg$AquaComponent <- "N_anorg"
 N_anorg$AquaUnit <- "mg N/l"
 N_anorg$Component <- "N_anorg"
+N_anorg <- N_anorg %>%
+  mutate(meetreeks = case_when(
+           FieldSamplingDate < as.Date("2020-01-01") ~ "<2020",
+           FieldSamplingDate < as.Date("2023-12-31") ~ "2022-2023",
+           FieldSamplingDate > as.Date("2023-12-31") ~ "2024",
+           TRUE ~ "fout"), 
+         seizoen = case_when(
+           format(FieldSamplingDate, "%m") %in% c(4:9) ~ "zomer",
+           TRUE ~ "winter"))
 data_met_N_anorg <- bind_rows(data_TVG, N_anorg)
 
 # zomerhalfjaargemiddelde
@@ -544,6 +564,32 @@ data_met_N_anorg %>%
   write.csv(file = "./exports/N_anorg_gem.csv")
 
 write.csv(data_met_N_anorg, file = "./data/Data_Kalmthout_met_Nanorg.csv")
+
+# TN, Anorg N
+locaties <- unique(data_met_N_anorg$codeplas[data_met_N_anorg$meetreeks == "2024"])
+
+for (ID in locaties) {
+  # orden van klein naar groot
+  data_met_N_anorg$label <- factor(data_met_N_anorg$label, unique(data_met_N_anorg[order(data_met_N_anorg$ResultCalc, decreasing = T), "label"]))
+  figuur <- maak_plot_area(data_met_N_anorg %>% filter(codeplas %in% ID & meetreeks == "2024") , c("N_anorg", "TN") , paste("Organische stikstof meetreeks 2024", ID, "\n"), yas = "Meetwaarde (mg N/L)") +
+  scale_y_continuous(breaks = pretty_breaks(n = 10, min.n = 10))
+  print(figuur)
+  ggsave(plot = figuur,
+         filename = paste0("./exports/N_org_2024/", ID,"_N_org_2024", ".jpg"), width = 1080, height = 720, units = "px", scale = 3)
+}
+
+# N_anorg = NH4_N, NO3_N, NO2_N
+locaties <- unique(data_met_N_anorg$codeplas[data_met_N_anorg$meetreeks == "2024"])
+
+for (ID in locaties) {
+  # orden van klein naar groot
+  data_met_N_anorg$label <- factor(data_met_N_anorg$label, unique(data_met_N_anorg[order(data_met_N_anorg$ResultCalc, decreasing = T), "label"]))
+  figuur <- maak_plot_area(data_met_N_anorg %>% filter(codeplas %in% ID & meetreeks == "2024") , c("N_anorg", "TN") , paste("Organische stikstof meetreeks 2024", ID, "\n"), yas = "Meetwaarde (mg N/L)") +
+  scale_y_continuous(breaks = pretty_breaks(n = 10, min.n = 10))
+  print(figuur)
+  ggsave(plot = figuur,
+         filename = paste0("./exports/N_org_2024/", ID,"_N_org_2024", ".jpg"), width = 1080, height = 720, units = "px", scale = 3)
+}
 
 ```
 
