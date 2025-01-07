@@ -580,15 +580,25 @@ for (ID in locaties) {
 
 # N_anorg = NH4_N, NO3_N, NO2_N
 locaties <- unique(data_met_N_anorg$codeplas[data_met_N_anorg$meetreeks == "2024"])
-
 for (ID in locaties) {
+  # subset voor locatie
+  N_anorg_ID <- data_TVG %>%
+  filter(AquaComponent %in% c("NH4_N", "NO3_N", "NO2_N") & codeplas == ID & meetreeks == "2024")
+  
   # orden van klein naar groot
-  data_met_N_anorg$label <- factor(data_met_N_anorg$label, unique(data_met_N_anorg[order(data_met_N_anorg$ResultCalc, decreasing = T), "label"]))
-  figuur <- maak_plot_area(data_met_N_anorg %>% filter(codeplas %in% ID & meetreeks == "2024") , c("N_anorg", "TN") , paste("Organische stikstof meetreeks 2024", ID, "\n"), yas = "Meetwaarde (mg N/L)") +
-  scale_y_continuous(breaks = pretty_breaks(n = 10, min.n = 10))
+  N_anorg_ID$label <- factor(N_anorg_ID$label, unique(N_anorg_ID[order(N_anorg_ID$ResultCalc, decreasing = T), "label"]))
+  # plot figuur
+  figuur <- N_anorg_ID %>%
+    ggplot(aes(x = FieldSamplingDate, y = ResultCalc, fill = label)) +
+    geom_area(position = "identity", alpha = 0.6) +
+    scale_x_date(date_breaks = "1 month", date_labels = "%b-%Y") +
+    labs(title = paste("Anorganische stikstof", ID ,"(N_anorg = NH4_N + NO3_N + NO2_N)\n")) +
+    xlab("Datum staalname") + 
+    ylab("Meetwaarde (mg N/L)")  + 
+    scale_fill_discrete("Variabelen") + scale_y_continuous(breaks = pretty_breaks(n = 10, min.n = 10))
   print(figuur)
   ggsave(plot = figuur,
-         filename = paste0("./exports/N_org_2024/", ID,"_N_org_2024", ".jpg"), width = 1080, height = 720, units = "px", scale = 3)
+         filename = paste0("./exports/N_anorg_2024/", ID,"_N_anorg_2024", ".jpg"), width = 1080, height = 720, units = "px", scale = 3)
 }
 
 ```
