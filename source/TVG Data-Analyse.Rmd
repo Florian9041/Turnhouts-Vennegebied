@@ -476,50 +476,74 @@ data_TVG %>%
 ```{r}
 # alkaliniteit
 data_TVG %>%
-  filter(AquaComponent %in% "alkaliniteit") %>%
+  filter(AquaComponent %in% "alkaliniteit" & meetreeks == "2024" & codeplas %in% reeks_2024) %>%
   group_by(codeplas) %>%
   summarise(Alk_mean = mean(ResultCalc),
             Alk_min = min(ResultCalc, na.rm = TRUE),
             Alk_max = max(ResultCalc, na.rm = TRUE),
             Alk_bereik = paste(min(ResultCalc, na.rm = TRUE), "-", max(ResultCalc, na.rm = TRUE))) %>%
-  write.csv2(file = "./exports/Alka.csv")
+  write.csv2(file = "./exports/Alka_24.csv")
 
-# Natrium
 data_TVG %>%
-  filter(AquaComponent %in% "Na") %>%
+  filter(AquaComponent %in% "alkaliniteit" & meetreeks == "2022-2023" & codeplas %in% reeks_2022_2023) %>%
   group_by(codeplas) %>%
-  summarise(Na_gem = mean(ResultCalc, na.rm = TRUE)) %>%
-  write.csv2(file = "./exports/Natrium.csv")
+  summarise(Alk_mean = mean(ResultCalc),
+            Alk_min = min(ResultCalc, na.rm = TRUE),
+            Alk_max = max(ResultCalc, na.rm = TRUE),
+            Alk_bereik = paste(min(ResultCalc, na.rm = TRUE), "-", max(ResultCalc, na.rm = TRUE))) %>%
+  write.csv2(file = "./exports/Alka_22-23.csv")
+
 
 # Silicium
 data_TVG %>%
-  filter(AquaComponent %in% "Si") %>%
+  filter(AquaComponent %in% "Si" & meetreeks == "2024" & codeplas %in% reeks_2024) %>%
   group_by(codeplas) %>%
-  summarise(Si_mean = mean(ResultCalc, na.rm = TRUE)) %>%
-  write.csv2(file = "./exports/Silicium.csv")
+  summarise(Si_gem = mean(ResultCalc, na.rm = TRUE)) %>%
+  write.csv2(file = "./exports/Si_24.csv")
+data_TVG %>%
+  filter(AquaComponent %in% "Si" & meetreeks == "2022-2023" & codeplas %in% reeks_2022_2023)  %>%
+  group_by(codeplas) %>%
+  summarise(Si_gem = mean(ResultCalc, na.rm = TRUE)) %>%
+  write.csv2(file = "./exports/Si_22-23.csv")
+
 
 # Calcium
 data_TVG %>%
-  filter(AquaComponent %in% "Ca") %>%
+  filter(AquaComponent %in% "Ca" & meetreeks == "2024" & codeplas %in% reeks_2024) %>%
   group_by(codeplas) %>%
-  summarise(Ca_mean = mean(ResultCalc, na.rm = TRUE),
-            Ca_max = max(ResultCalc, na.rm = TRUE)) %>%
-  write.csv2(file = "./exports/Calcium.csv")
+  summarise(Ca_gem = mean(ResultCalc, na.rm = TRUE)) %>%
+  write.csv2(file = "./exports/Ca_24.csv")
+data_TVG %>%
+  filter(AquaComponent %in% "Ca" & meetreeks == "2022-2023" & codeplas %in% reeks_2022_2023)  %>%
+  group_by(codeplas) %>%
+  summarise(Ca_gem = mean(ResultCalc, na.rm = TRUE)) %>%
+  write.csv2(file = "./exports/Ca_22-23.csv")
+
 
 # Kalium
 data_TVG %>%
-  filter(AquaComponent %in% "K") %>%
+  filter(AquaComponent %in% "K" & meetreeks == "2024" & codeplas %in% reeks_2024) %>%
   group_by(codeplas) %>%
-  summarise(K_mean = mean(ResultCalc, na.rm = TRUE)) %>%
-  write.csv2(file = "./exports/Kalium.csv")
+  summarise(K_gem = mean(ResultCalc, na.rm = TRUE)) %>%
+  write.csv2(file = "./exports/K_24.csv")
+data_TVG %>%
+  filter(AquaComponent %in% "K" & meetreeks == "2022-2023" & codeplas %in% reeks_2022_2023)  %>%
+  group_by(codeplas) %>%
+  summarise(K_gem = mean(ResultCalc, na.rm = TRUE)) %>%
+  write.csv2(file = "./exports/K_22-23.csv")
 
 
 # Magnesium
 data_TVG %>%
-  filter(AquaComponent %in% "Mg") %>%
+  filter(AquaComponent %in% "Mg" & meetreeks == "2024" & codeplas %in% reeks_2024) %>%
   group_by(codeplas) %>%
-  summarise(Mg_mean = mean(ResultCalc, na.rm = TRUE)) %>%
-  write.csv2(file = "./exports/Magnesium.csv")
+  summarise(Mg_gem = mean(ResultCalc, na.rm = TRUE)) %>%
+  write.csv2(file = "./exports/Mg_24.csv")
+data_TVG %>%
+  filter(AquaComponent %in% "Mg" & meetreeks == "2022-2023" & codeplas %in% reeks_2022_2023)  %>%
+  group_by(codeplas) %>%
+  summarise(Mg_gem = mean(ResultCalc, na.rm = TRUE)) %>%
+  write.csv2(file = "./exports/Mg_22-23.csv")
 
 ```
 
@@ -542,17 +566,27 @@ data_TVG %>%
 
 # Sulfaat (SO4)
 data_TVG %>%
-  filter(AquaComponent %in% "SO4") %>%
+  filter(AquaComponent %in% "SO4" & meetreeks == "2024" & codeplas %in% reeks_2024) %>%
   group_by(codeplas) %>%
   summarise(SO4_gem = mean(ResultCalc, na.rm = TRUE)) %>%
-  write.csv(file = "./exports/SO4.csv")
+  write.csv2(file = "./exports/SO4_24.csv")
+data_TVG %>%
+  filter(AquaComponent %in% "SO4" & meetreeks == "2022-2023" & codeplas %in% reeks_2022_2023)  %>%
+  group_by(codeplas) %>%
+  summarise(SO4_gem = mean(ResultCalc, na.rm = TRUE)) %>%
+  write.csv2(file = "./exports/SO4_22-23.csv")
 
 # Natrium
 data_TVG %>%
-  filter(AquaComponent %in% "Na") %>%
+  filter(AquaComponent %in% "Na" & meetreeks == "2024" & codeplas %in% reeks_2024) %>%
   group_by(codeplas) %>%
-  summarise(Na_max = max(ResultCalc, na.rm = TRUE)) %>%
-  write.csv2(file = "./exports/Na.csv")
+  summarise(Na_gem = mean(ResultCalc, na.rm = TRUE)) %>%
+  write.csv2(file = "./exports/Na_24.csv")
+data_TVG %>%
+  filter(AquaComponent %in% "Na" & meetreeks == "2022-2023" & codeplas %in% reeks_2022_2023)  %>%
+  group_by(codeplas) %>%
+  summarise(Na_gem = mean(ResultCalc, na.rm = TRUE)) %>%
+  write.csv2(file = "./exports/Na_22-23.csv")
 
 data_TVG %>%
   filter(AquaComponent %in% "Na") %>%
@@ -564,11 +598,19 @@ data_TVG %>%
 
 # Chloride
 data_TVG %>%
-  filter(AquaComponent %in% "Cl") %>%
+  filter(AquaComponent %in% "Cl" & meetreeks == "2024" & codeplas %in% reeks_2024) %>%
   group_by(codeplas) %>%
   summarise(Cl_max = max(ResultCalc, na.rm = TRUE),
             Cl_90p = quantile(ResultCalc, probs = 0.9, na.rm = TRUE)) %>%
-  write.csv2(file = "./exports/Cl.csv")
+  write.csv2(file = "./exports/Cl_24.csv")
+
+data_TVG %>%
+  filter(AquaComponent %in% "Cl" & meetreeks == "2022-2023" & codeplas %in% reeks_2022_2023) %>%
+  group_by(codeplas) %>%
+  summarise(Cl_max = max(ResultCalc, na.rm = TRUE),
+            Cl_90p = quantile(ResultCalc, probs = 0.9, na.rm = TRUE)) %>%
+  write.csv2(file = "./exports/Cl_22-23.csv")
+
 
 data_TVG %>%
   filter(AquaComponent %in% "Cl") %>%
@@ -599,41 +641,89 @@ data_TVG %>%
   summarise(zhjgem = mean(ResultCalc)) %>%
   write.csv(file = "./exports/TN_TP.csv")
 
+data_TVG %>%
+  filter(AquaComponent %in% c("TN", "TP") & meetreeks == "2024" & codeplas %in% reeks_2024) %>%
+  mutate(month = format(FieldSamplingDate, "%m")) %>%
+  filter(month %in% c("04", "05", "06", "07", "08", "09")) %>%
+  group_by(codeplas, AquaComponent) %>%
+  summarise(zhjgem = mean(ResultCalc, na.rm = TRUE)) %>%
+  write.csv2(file = "./exports/TN_TP_zhj_24.csv")
+
+data_TVG %>%
+  filter(AquaComponent %in% c("TN", "TP") & meetreeks == "2022-2023" & codeplas %in% reeks_2022_2023) %>%
+  mutate(month = format(FieldSamplingDate, "%m")) %>%
+  filter(month %in% c("04", "05", "06", "07", "08", "09")) %>%
+  group_by(codeplas, AquaComponent) %>%
+  summarise(zhjgem = mean(ResultCalc, na.rm = TRUE)) %>%
+  write.csv2(file = "./exports/TN_TP_zhj_22-23.csv")
+
 # NO3-N
 data_TVG %>%
-  filter(AquaComponent %in% "NO3_N") %>%
+  filter(AquaComponent %in% "NO3_N" & meetreeks == "2024" & codeplas %in% reeks_2024) %>%
   mutate(month = format(FieldSamplingDate, "%m")) %>%
   filter(month %in% c("04", "05", "06", "07", "08", "09")) %>%
   group_by(codeplas) %>%
-  summarise(NO3_N_gem = mean(ResultCalc)) %>%
-  write.csv(file = "./exports/NO3_N.csv")
+  summarise(NO3_N_zhj = mean(ResultCalc)) %>%
+  write.csv(file = "./exports/NO3_N_24.csv")
+
+data_TVG %>%
+  filter(AquaComponent %in% "NO3_N" & meetreeks == "2022-2023" & codeplas %in% reeks_2022_2023) %>%
+  mutate(month = format(FieldSamplingDate, "%m")) %>%
+  filter(month %in% c("04", "05", "06", "07", "08", "09")) %>%
+  group_by(codeplas) %>%
+  summarise(NO3_N_zhj = mean(ResultCalc)) %>%
+  write.csv(file = "./exports/NO3_N_22-23.csv")
 
 # NO2-N
 data_TVG %>%
-  filter(AquaComponent %in% "NO2_N") %>%
+  filter(AquaComponent %in% "NO2_N" & meetreeks == "2024" & codeplas %in% reeks_2024) %>%
   mutate(month = format(FieldSamplingDate, "%m")) %>%
   filter(month %in% c("04", "05", "06", "07", "08", "09")) %>%
   group_by(codeplas) %>%
-  summarise(NO2_N_gem = mean(ResultCalc)) %>%
-  write.csv(file = "./exports/NO2_N.csv")
+  summarise(NO2_N_zhj = mean(ResultCalc)) %>%
+  write.csv(file = "./exports/NO2_N_24.csv")
+
+data_TVG %>%
+  filter(AquaComponent %in% "NO2_N" & meetreeks == "2022-2023" & codeplas %in% reeks_2022_2023) %>%
+  mutate(month = format(FieldSamplingDate, "%m")) %>%
+  filter(month %in% c("04", "05", "06", "07", "08", "09")) %>%
+  group_by(codeplas) %>%
+  summarise(NO2_N_zhj = mean(ResultCalc)) %>%
+  write.csv(file = "./exports/NO2_N_22-23.csv")
 
 # NH4-N
 data_TVG %>%
-  filter(AquaComponent %in% "NH4_N") %>%
+  filter(AquaComponent %in% "NH4_N" & meetreeks == "2024" & codeplas %in% reeks_2024) %>%
   mutate(month = format(FieldSamplingDate, "%m")) %>%
   filter(month %in% c("04", "05", "06", "07", "08", "09")) %>%
   group_by(codeplas) %>%
-  summarise(NH4_N_gem = mean(ResultCalc)) %>%
-  write.csv(file = "./exports/NH4_N.csv")
+  summarise(NH4_N_zhj = mean(ResultCalc)) %>%
+  write.csv(file = "./exports/NH4_N_24.csv")
+
+data_TVG %>%
+  filter(AquaComponent %in% "NH4_N" & meetreeks == "2022-2023" & codeplas %in% reeks_2022_2023) %>%
+  mutate(month = format(FieldSamplingDate, "%m")) %>%
+  filter(month %in% c("04", "05", "06", "07", "08", "09")) %>%
+  group_by(codeplas) %>%
+  summarise(NH4_N_zhj = mean(ResultCalc)) %>%
+  write.csv(file = "./exports/NH4_N_22-23.csv")
 
 # PO4-P
 data_TVG %>%
-  filter(AquaComponent %in% "PO4_P") %>%
+  filter(AquaComponent %in% "PO4_P" & meetreeks == "2024" & codeplas %in% reeks_2024) %>%
   mutate(month = format(FieldSamplingDate, "%m")) %>%
   filter(month %in% c("04", "05", "06", "07", "08", "09")) %>%
   group_by(codeplas) %>%
-  summarise(PO4_P_zhjgem = mean(ResultCalc)) %>%
-  write.csv(file = "./exports/PO4_P.csv")
+  summarise(PO4_P_zhj = mean(ResultCalc)) %>%
+  write.csv(file = "./exports/PO4_P_24.csv")
+
+data_TVG %>%
+  filter(AquaComponent %in% "PO4_P" & meetreeks == "2022-2023" & codeplas %in% reeks_2022_2023) %>%
+  mutate(month = format(FieldSamplingDate, "%m")) %>%
+  filter(month %in% c("04", "05", "06", "07", "08", "09")) %>%
+  group_by(codeplas) %>%
+  summarise(PO4_P_zhj = mean(ResultCalc)) %>%
+  write.csv(file = "./exports/PO4_P_22-23.csv")
 ```
 
 # Anorganische en organische stikstof
