@@ -69,10 +69,29 @@ data_TVG <- data_TVG %>%
            FieldSamplingDate < as.Date("2023-12-31") ~ "2022-2023",
            FieldSamplingDate > as.Date("2023-12-31") ~ "2024",
            TRUE ~ "fout"), 
-         seizoen = case_when(
-           format(FieldSamplingDate, "%m") %in% c(4:9) ~ "zomer",
+         seizoen = case_when(as.numeric(
+           format(FieldSamplingDate, "%m")) %in% c(4:9) ~ "zomer",
            TRUE ~ "winter"))
 ```
+
+# meetreeksen
+```{r}
+data_TVG %>%
+  ggplot(aes(x = FieldSamplingDate, y = codeplas, colour = meetreeks)) +
+  geom_point(size = 1) +
+    scale_x_date(date_breaks = "1 year", date_labels = "%Y")
+  
+meetreeksen <- read.csv(file = "./data/Turnhouts Vennegebied MKN - Meetreeksen.csv", sep = ",")
+colnames(meetreeksen) <- c("codeplas", "2024", "2022-2023", "<2022", "<2022_jaar")
+reeks_2024 <- meetreeksen %>%
+  filter(`2024` == "ja") %>% pull(codeplas)
+reeks_2022_2023 <- meetreeksen %>%
+  filter(`2022-2023` == "ja") %>% pull(codeplas)
+reeks_2020 <- meetreeksen %>%
+  filter(`<2022` == "ja") %>% pull(codeplas)
+
+```
+
 
 # boxplots per variabele
 ```{r}
@@ -345,26 +364,42 @@ for (ID in locaties) {
 ```{r}
 # concentratie
 data_TVG %>%
-  filter(AquaComponent %in% "O2_veld") %>%
+  filter(AquaComponent %in% "O2_veld" & codeplas %in% reeks_2024) %>%
   group_by(codeplas) %>%
   summarise(O2_10p = quantile(ResultCalc,probs = 0.1, na.rm = TRUE)) %>%
-  write.csv2(file = "../exports/O2_conc.csv")
+  write.csv2(file = "./exports/O2_conc_2024.csv")
+data_TVG %>%
+  filter(AquaComponent %in% "O2_veld" & codeplas %in% reeks_2022_2023) %>%
+  group_by(codeplas) %>%
+  summarise(O2_10p = quantile(ResultCalc,probs = 0.1, na.rm = TRUE)) %>%
+  write.csv(file = "./exports/O2_conc_2022-23.csv")
 
 # verzadiging
 data_TVG %>%
-  filter(AquaComponent %in% "O2verz") %>%
+  filter(AquaComponent %in% "O2verz" & codeplas %in% reeks_2024) %>%
   group_by(codeplas) %>%
   summarise(O2_verz_max = max(ResultCalc, na.rm = TRUE)) %>%
-  write.csv2(file = "../exports/O2_verz.csv")
+  write.csv(file = "./exports/O2_verz_2024.csv")
+data_TVG %>%
+  filter(AquaComponent %in% "O2verz" & codeplas %in% reeks_2022_2023) %>%
+  group_by(codeplas) %>%
+  summarise(O2_verz_max = max(ResultCalc, na.rm = TRUE)) %>%
+  write.csv(file = "./exports/O2_verz_2022-23.csv")
 ```
 
 # Temperatuur
 ```{r}
 data_TVG %>%
   filter(AquaComponent %in% "T_veld") %>%
+  group_by(codeplas, meetreeks) %>%
+  summarise(Temp_max = max(ResultCalc, na.rm = TRUE)) %>%
+  write.csv(file = "./exports/Temp_veld.csv")
+
+data_TVG %>%
+  filter(AquaComponent %in% "T_veld" & codeplas %in% reeks_2022_2023) %>%
   group_by(codeplas) %>%
   summarise(Temp_max = max(ResultCalc, na.rm = TRUE)) %>%
-  write.csv2(file = "../exports/Temp_veld.csv")
+  write.csv(file = "./exports/Temp_veld22_23.csv")
 ```
 
 # Alkaliniteit, Natrium, Silicium, Calcium, Kalium, Magnesium
