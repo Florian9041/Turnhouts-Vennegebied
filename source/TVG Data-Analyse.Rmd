@@ -519,6 +519,17 @@ data_TVG %>%
   summarise(Ca_gem = mean(ResultCalc, na.rm = TRUE)) %>%
   write.csv2(file = "./exports/Ca_22-23.csv")
 
+## Calcium max zomer
+data_TVG %>%
+  filter(AquaComponent %in% "Ca" & meetreeks == "2024" & codeplas %in% reeks_2024 & seizoen == "zomer") %>%
+  group_by(codeplas) %>%
+  summarise(Ca_maxzomer = max(ResultCalc, na.rm = TRUE)) %>%
+  write.csv2(file = "./exports/Ca_maxzomer24.csv")
+data_TVG %>%
+  filter(AquaComponent %in% "Ca" & meetreeks == "2022-2023" & codeplas %in% reeks_2022_2023 & seizoen == "zomer")  %>%
+  group_by(codeplas) %>%
+  summarise(Ca_maxzomer = max(ResultCalc, na.rm = TRUE)) %>%
+  write.csv2(file = "./exports/Ca_maxzomer22-23.csv")
 
 # Kalium
 data_TVG %>%
@@ -582,11 +593,29 @@ data_TVG %>%
   group_by(codeplas) %>%
   summarise(Na_gem = mean(ResultCalc, na.rm = TRUE)) %>%
   write.csv2(file = "./exports/Na_24.csv")
+
 data_TVG %>%
   filter(AquaComponent %in% "Na" & meetreeks == "2022-2023" & codeplas %in% reeks_2022_2023)  %>%
   group_by(codeplas) %>%
   summarise(Na_gem = mean(ResultCalc, na.rm = TRUE)) %>%
   write.csv2(file = "./exports/Na_22-23.csv")
+
+## Natrium max zomer
+data_TVG %>%
+  filter(AquaComponent %in% "Na" & meetreeks == "2024" & codeplas %in% reeks_2024) %>%
+  mutate(month = format(FieldSamplingDate, "%m")) %>%
+  filter(month %in% c("04", "05", "06", "07", "08", "09")) %>%
+  group_by(codeplas) %>%
+  summarise(Na_gem = max(ResultCalc, na.rm = TRUE)) %>%
+  write.csv2(file = "./exports/Na_maxzomer24.csv")
+
+data_TVG %>%
+  filter(AquaComponent %in% "Na" & meetreeks == "2022-2023" & codeplas %in% reeks_2022_2023)  %>%
+  mutate(month = format(FieldSamplingDate, "%m")) %>%
+  filter(month %in% c("04", "05", "06", "07", "08", "09")) %>%
+  group_by(codeplas) %>%
+  summarise(Na_maxzomer = max(ResultCalc, na.rm = TRUE)) %>%
+  write.csv2(file = "./exports/Na_maxzomer22-23.csv")
 
 data_TVG %>%
   filter(AquaComponent %in% "Na") %>%
@@ -611,14 +640,22 @@ data_TVG %>%
             Cl_90p = quantile(ResultCalc, probs = 0.9, na.rm = TRUE)) %>%
   write.csv2(file = "./exports/Cl_22-23.csv")
 
-
+## Chloride max zomer
 data_TVG %>%
-  filter(AquaComponent %in% "Cl") %>%
+  filter(AquaComponent %in% "Cl" & meetreeks == "2024" & codeplas %in% reeks_2024) %>%
   mutate(month = format(FieldSamplingDate, "%m")) %>%
   filter(month %in% c("04", "05", "06", "07", "08", "09")) %>%
   group_by(codeplas) %>%
-  summarise(Cl_max_zomer = max(ResultCalc, na.rm = TRUE)) %>%
-  write.csv2(file = "./exports/Cl_max_zomer.csv")
+  summarise(Cl_gem = max(ResultCalc, na.rm = TRUE)) %>%
+  write.csv2(file = "./exports/Cl_maxzomer24.csv")
+
+data_TVG %>%
+  filter(AquaComponent %in% "Cl" & meetreeks == "2022-2023" & codeplas %in% reeks_2022_2023)  %>%
+  mutate(month = format(FieldSamplingDate, "%m")) %>%
+  filter(month %in% c("04", "05", "06", "07", "08", "09")) %>%
+  group_by(codeplas) %>%
+  summarise(Cl_maxzomer = max(ResultCalc, na.rm = TRUE)) %>%
+  write.csv2(file = "./exports/Cl_maxzomer22-23.csv")
 
 
 # saliniteit
@@ -643,8 +680,7 @@ data_TVG %>%
 
 data_TVG %>%
   filter(AquaComponent %in% c("TN", "TP") & meetreeks == "2024" & codeplas %in% reeks_2024) %>%
-  mutate(month = format(FieldSamplingDate, "%m")) %>%
-  filter(month %in% c("04", "05", "06", "07", "08", "09")) %>%
+  filter(seizoen %in% "zomer") %>%
   group_by(codeplas, AquaComponent) %>%
   summarise(zhjgem = mean(ResultCalc, na.rm = TRUE)) %>%
   write.csv2(file = "./exports/TN_TP_zhj_24.csv")
@@ -690,6 +726,21 @@ data_TVG %>%
   group_by(codeplas) %>%
   summarise(NO2_N_zhj = mean(ResultCalc)) %>%
   write.csv2(file = "./exports/NO2_N_22-23.csv")
+
+## Van Calster NO2_N gemiddelde & maximum
+data_TVG %>%
+  filter(AquaComponent %in% "NO2_N" & meetreeks == "2024" & codeplas %in% reeks_2024) %>%
+  group_by(codeplas) %>%
+  summarise(NO2_Ngem = mean(ResultCalc),
+            NO2_Nmax = max(ResultCalc)) %>%
+  write.csv2(file = "./exports/NO2_Ngemmax_24.csv")
+
+data_TVG %>%
+  filter(AquaComponent %in% "NO2_N" & meetreeks == "2022-2023" & codeplas %in% reeks_2022_2023) %>%
+  group_by(codeplas) %>%
+  summarise(NO2_Ngem = mean(ResultCalc),
+            NO2_Nmax = max(ResultCalc)) %>%
+  write.csv2(file = "./exports/NO2_Ngemmax_22-23.csv")
 
 # NH4-N
 data_TVG %>%
@@ -760,10 +811,16 @@ data_met_N_anorg %>%
 
 # maximum (van Calster)
 data_met_N_anorg %>%
-  filter(AquaComponent %in% "N_anorg") %>%
+  filter(AquaComponent %in% "N_anorg" & meetreeks == "2024" & codeplas %in% reeks_2024) %>%
   group_by(codeplas) %>%
-  summarise(gem = mean(ResultCalc)) %>%
-  write.csv2(file = "./exports/N_anorg_gem.csv")
+  summarise(N_anorg_max = max(ResultCalc)) %>%
+  write.csv2(file = "./exports/N_anorg_max2024.csv")
+
+data_met_N_anorg %>%
+  filter(AquaComponent %in% "N_anorg" & meetreeks == "2022-2023" & codeplas %in% reeks_2022_2023) %>%
+  group_by(codeplas) %>%
+  summarise(N_anorg_max = max(ResultCalc)) %>%
+  write.csv2(file = "./exports/N_anorg_max2022-23.csv")
 
 write.csv2(data_met_N_anorg, file = "./data/Data_Kalmthout_met_Nanorg.csv")
 
