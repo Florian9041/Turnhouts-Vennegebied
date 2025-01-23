@@ -1011,18 +1011,14 @@ maucha(ionenwide22_23)
 ```
 
 ### Maucha-diagram per locatie (figuur per maand)
-#### Maak dataset aan voor locatie x
+#### Tijdsreeks 2024 Maak dataset aan voor locatie x
 ```{r}
-#"ANTMRK0204" "ANTTUR0094" "ANTTUR0305" "ANTMRK0177" "ANTRAV0014" "ANTRAV0175" "ANTRAV0188" "ANTRAV0208" "ANTTUR0022" "ANTTUR0046" "ANTTUR0270"
-#"ANTTUR0277" "ANTTUR0282" "ANTTUR0287" "ANTTUR0295" "ANTTUR0300" "ANTTUR0302" "ANTMRK0206" "ANTTUR0018" "ANTTUR0077" "ANTTUR0079" "ANTTUR0273"
-#"ANTTUR0292" "ANTTUR0297" "ANTTUR0299" "ANTRAV0122" "ANTRAV0381" "ANTRAV0211" "ANTTUR0065" "ANTTUR0082" "ANTOTH0015" "ANTRAV0052" "ANTARE0025"
-#"ANTRAV0230" "ANTTUR0257" "ANTARE0309" "ANTRAV0293" "ANTRAV0296" "ANTRAV0297" "ANTTUR0296" "ANTTUR0301" "ANTTUR0304" "ANTOTH0270" "ANTOTH0271"
-#"ANTBAA0036" "ANTOTH0306" "ANTRAV0369" "ANTOTH0324" "ANTTUR0674"
-locatie <- "ANTTUR0674"
+# "ANTTUR0299" "ANTTUR0297" "ANTTUR0292" "ANTTUR0282" "ANTRAV0014"
+locatie <- ""
 
 
 datamaucha <- data_TVG %>%
-  filter(AquaComponent %in% c("K", "Na", "Ca", "Mg", "SO4", "Cl", "HCO3_OEP", "CO3") & codeplas == locatie) %>%
+  filter(AquaComponent %in% c("K", "Na", "Ca", "Mg", "SO4", "Cl", "HCO3_OEP", "CO3") & codeplas == locatie & meetreeks == "2024") %>%
   group_by(AquaComponent, FieldSamplingDate) %>%
   summarise(gemiddelde = mean(ResultCalc)) %>%
   select(FieldSamplingDate, AquaComponent, gemiddelde)
@@ -1036,9 +1032,34 @@ datamauchawide <- datamauchawide %>%
 # converteer kolom met datum staalname naar row.names voor maucha-functie
 datamauchawide <- datamauchawide %>% remove_rownames %>% column_to_rownames(var = "FieldSamplingDate")
 maucha(datamauchawide)
-
-# voor ANTOTH0015 en ANTOTH0270 ontbreekt data voor CO3!
 ```
+
+```{r}
+# "" "" "" "" "" "" "" "" ""
+# "" "" "" "" "" "" "" "" ""
+# "" "" "" "" "" "" "" "" ""
+# "" "" "" "" "" "" "" "" ""
+# "" "" "" "ANTMRK0177"
+locatie <- "ANTTUR0296"
+
+
+datamaucha <- data_TVG %>%
+  filter(AquaComponent %in% c("K", "Na", "Ca", "Mg", "SO4", "Cl", "HCO3_OEP", "CO3") & codeplas == locatie & meetreeks == "2022-2023") %>%
+  group_by(AquaComponent, FieldSamplingDate) %>%
+  summarise(gemiddelde = mean(ResultCalc)) %>%
+  select(FieldSamplingDate, AquaComponent, gemiddelde)
+
+# to wide format
+datamauchawide <- pivot_wider(datamaucha, names_from = AquaComponent, values_from = gemiddelde)
+# kolommen in juiste volgorde (! belangrijk voor correct Maucha-diagram)
+datamauchawide <- datamauchawide %>%
+  select(FieldSamplingDate, K, Na, Ca, Mg, SO4, Cl, HCO3_OEP, CO3)
+
+# converteer kolom met datum staalname naar row.names voor maucha-functie
+datamauchawide <- datamauchawide %>% remove_rownames %>% column_to_rownames(var = "FieldSamplingDate")
+maucha(datamauchawide)
+```
+
 
 # IR-EGV plot
 ## referentie-punten
