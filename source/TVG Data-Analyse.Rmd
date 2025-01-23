@@ -921,22 +921,36 @@ maucha <- function(x, col = NULL,
 ## Maak dataset met ionen
 ```{r}
 # dataset met ionen (gemiddelde waarde per locatie)
-ionen <- data_TVG %>%
-  filter(AquaComponent %in% c("K", "Na", "Ca", "Mg", "SO4", "Cl", "HCO3_OEP", "CO3")) %>%
+# meetreeks 2024
+ionen24 <- data_TVG %>%
+  filter(AquaComponent %in% c("K", "Na", "Ca", "Mg", "SO4", "Cl", "HCO3_OEP", "CO3") & meetreeks == "2024" & codeplas %in% reeks_2024) %>%
   group_by(AquaComponent, codeplas) %>%
   summarise(gemiddelde = mean(ResultCalc))
 
 # to wide format
-ionenwide <- pivot_wider(ionen, names_from = AquaComponent, values_from = gemiddelde)
-ionenwide <- ionenwide %>% select(codeplas, K, Na, Ca, Mg, SO4, Cl, HCO3_OEP, CO3)
+ionenwide24 <- pivot_wider(ionen24, names_from = AquaComponent, values_from = gemiddelde)
+ionenwide24 <- ionenwide24 %>% select(codeplas, K, Na, Ca, Mg, SO4, Cl, HCO3_OEP, CO3)
+
+# meetreeks 2022-2023
+ionen22_23 <- data_TVG %>%
+  filter(AquaComponent %in% c("K", "Na", "Ca", "Mg", "SO4", "Cl", "HCO3_OEP", "CO3") & meetreeks == "2022-2023" & codeplas %in% reeks_2022_2023) %>%
+  group_by(AquaComponent, codeplas) %>%
+  summarise(gemiddelde = mean(ResultCalc))
+
+# to wide format
+ionenwide22_23 <- pivot_wider(ionen22_23, names_from = AquaComponent, values_from = gemiddelde)
+ionenwide22_23 <- ionenwide22_23 %>% select(codeplas, K, Na, Ca, Mg, SO4, Cl, HCO3_OEP, CO3)
 ```
 
 
 ### Maucha-diagram voor alle locaties (gemiddelde per locatie)
 ```{r}
 # converteer kolom met locatiecode naar row.names voor maucha-functie
-ionenwide <- ionenwide %>% remove_rownames %>% column_to_rownames(var = "codeplas")
-maucha(ionenwide)
+ionenwide24 <- ionenwide24 %>% remove_rownames %>% column_to_rownames(var = "codeplas")
+maucha(ionenwide24)
+
+ionenwide22_23 <- ionenwide22_23 %>% remove_rownames %>% column_to_rownames(var = "codeplas")
+maucha(ionenwide22_23)
 ```
 
 ### Maucha-diagram per locatie (figuur per maand)
@@ -983,17 +997,32 @@ ref_punten <- data.frame(
 
 ## gemiddelde Cl en Ca concentraties per locatie
 ```{r}
-IREGVdata <- data_TVG %>% 
-  filter(AquaComponent %in% c("Ca", "Cl", "EGV25_veld")) %>%
-  group_by(codeplas, AquaComponent) %>% summarise(gemiddelde = mean(ResultCalc))
+# voor meetreeks 2024 (5 locaties)
+IREGVdata24 <- data_TVG %>% 
+  filter(AquaComponent %in% c("Ca", "Cl", "EGV25_veld") & meetreeks %in% "2024" & codeplas %in% reeks_2024) %>%
+  group_by(codeplas, AquaComponent, meetreeks) %>% summarise(gemiddelde = mean(ResultCalc))
 
-# naar wide format (componenten als kolommen)
-IREGVwide <- pivot_wider(IREGVdata, names_from = AquaComponent, values_from = gemiddelde)
+## naar wide format (componenten als kolommen)
+IREGVwide24 <- pivot_wider(IREGVdata24, names_from = AquaComponent, values_from = gemiddelde)
 
-# bereken en voeg IR toe als kolom
-IREGVwide <- IREGVwide %>%
+## bereken en voeg IR toe als kolom
+IREGVwide24 <- IREGVwide24 %>%
   mutate(IR = ((Ca*2)/40.078) / (((Ca*2)/40.078) + (Cl/35.453)), name_ref = codeplas)
 
+# voor meetreeks 2022-23 (40 locaties)
+IREGVdata22_23 <- data_TVG %>% 
+  filter(AquaComponent %in% c("Ca", "Cl", "EGV25_veld") & meetreeks %in% "2022-2023" & codeplas %in% reeks_2022_2023) %>%
+  group_by(codeplas, AquaComponent, meetreeks) %>% summarise(gemiddelde = mean(ResultCalc))
+
+## naar wide format (componenten als kolommen)
+IREGVwide22_23 <- pivot_wider(IREGVdata22_23, names_from = AquaComponent, values_from = gemiddelde)
+
+## bereken en voeg IR toe als kolom
+IREGVwide22_23 <- IREGVwide22_23 %>%
+  mutate(IR = ((Ca*2)/40.078) / (((Ca*2)/40.078) + (Cl/35.453)), name_ref = codeplas)
+
+## voeg samen tot 1 dataset
+IREGVwide <- rbind(IREGVwide24, IREGVwide22_23)
 ```
 
 ## plot IR_EGV diagram
@@ -1007,14 +1036,14 @@ p1 <- ggplot(ref_punten, aes(x = ec25_ref, y = ir_ref, label = name_ref)) +
   ggtitle("IR-EGV diagram Turnhout\n") + 
   geom_text(hjust = - 0.5, vjust = - 0.5)
 # voeg locaties Kalmthout toe
-p1 + geom_point(data = IREGVwide, mapping = aes(x = EGV25_veld, y = IR), color = "red")
+p1 + geom_point(data = IREGVwide, mapping = aes(x = EGV25_veld, y = IR, colour = meetreeks))
 ```
 
 ### plot Ionenratio
 ```{r}
 IREGVwide %>%
-    ggplot(aes(x = IR, y = codeplas)) +
-    geom_boxplot() +
+    ggplot(aes(x = IR, y = codeplas, colour = meetreeks)) +
+    geom_point() +
     labs(title = "Ionenratio (%)\n") +
     ylab("Locatie") + xlab("ratio (%)")
 ```
