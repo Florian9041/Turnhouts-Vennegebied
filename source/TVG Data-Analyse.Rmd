@@ -65,10 +65,7 @@ data_TVG <- data_TVG %>%
 
 data_TVG <- data_TVG %>%
   mutate(meetreeks = case_when(
-           FieldSamplingDate < as.Date("2020-01-01") ~ "<2020",
-           FieldSamplingDate < as.Date("2023-12-31") ~ "2022-2023",
-           FieldSamplingDate > as.Date("2023-12-31") ~ "2024",
-           TRUE ~ "fout"), 
+           FieldSamplingDate < as.Date("2020-01-01") ~ "<2020",TRUE ~ "2022-2024"), 
          seizoen = case_when(as.numeric(
            format(FieldSamplingDate, "%m")) %in% c(4:9) ~ "zomer",
            TRUE ~ "winter"))
@@ -83,13 +80,10 @@ data_TVG %>%
   
 meetreeksen <- read.csv(file = "./data/Turnhouts Vennegebied MKN - Meetreeksen.csv", sep = ",")
 colnames(meetreeksen) <- c("codeplas", "2024", "2022-2023", "<2022", "<2022_jaar")
-reeks_2024 <- meetreeksen %>%
-  filter(`2024` == "ja") %>% pull(codeplas)
-reeks_2022_2023 <- meetreeksen %>%
-  filter(`2022-2023` == "ja") %>% pull(codeplas)
+reeks_2022_2024 <- meetreeksen %>%
+  filter(`2024` == "ja" | `2022-2023` == "ja") %>% pull(codeplas)
 reeks_2020 <- meetreeksen %>%
   filter(`<2022` == "ja") %>% pull(codeplas)
-
 ```
 
 
@@ -97,10 +91,10 @@ reeks_2020 <- meetreeksen %>%
 ```{r}
 Componenten <- unique(data_TVG$AquaComponent)
 
-# meetreeks 2024
+# meetreeks 2022-2024
 for (Variabele in Componenten) {
   data_figuur <- data_TVG %>%
-    filter(AquaComponent %in% Variabele & meetreeks == "2024")
+    filter(AquaComponent %in% Variabele & meetreeks == "2022-2024")
   figuur <- ggplot(data_figuur,
                    aes(x = ResultCalc, y = codeplas)) +
     geom_boxplot() +
@@ -110,10 +104,10 @@ for (Variabele in Componenten) {
          filename = paste0("./exports/boxplots2024/", "Turnhout_",Variabele, "_bw",".jpg"), width = 1080, height = 720, units = "px", scale = 3)
 }
 
-# meetreeks 2022-2023
+# meetreeks <2020
 for (Variabele in Componenten) {
   data_figuur <- data_TVG %>%
-    filter(AquaComponent %in% Variabele & meetreeks == "2022-2023")
+    filter(AquaComponent %in% Variabele & meetreeks == "<2020")
   figuur <- ggplot(data_figuur,
                    aes(x = ResultCalc, y = codeplas)) +
     geom_boxplot() +
