@@ -80,8 +80,10 @@ data_TVG %>%
   
 meetreeksen <- read.csv(file = "./data/Turnhouts Vennegebied MKN - Meetreeksen.csv", sep = ",")
 colnames(meetreeksen) <- c("codeplas", "2024", "2022-2023", "<2022", "<2022_jaar")
+# reeks van 2022-2024
 reeks_2022_2024 <- meetreeksen %>%
   filter(`2024` == "ja" | `2022-2023` == "ja") %>% pull(codeplas)
+# historische metingen
 reeks_2020 <- meetreeksen %>%
   filter(`<2022` == "ja") %>% pull(codeplas)
 ```
@@ -89,7 +91,7 @@ reeks_2020 <- meetreeksen %>%
 
 # boxplots per variabele
 ```{r}
-Componenten <- unique(data_TVG$AquaComponent)
+Componenten <- c("absorptie_440", "chl_a", "ZS_105", "ZS_550", "TP", "TN", "Cl", "SO4", "T_veld", "pH_veld", "EGV25_veld", "O2_veld", "O2verz", "SD_veld", "WD_veld", "NH4_N", "NO2_N", "NO3_N", "PO4_P", "alkaliniteit")
 
 # meetreeks 2022-2024
 for (Variabele in Componenten) {
@@ -101,7 +103,7 @@ for (Variabele in Componenten) {
     labs(title = paste0("Turnhout variabele ",data_figuur$label, "\n")) +
     ylab("Locatie") + xlab(paste0("Meetwaarde (", data_figuur$AquaUnit ,")"))
   ggsave(figuur,
-         filename = paste0("./exports/boxplots2024/", "Turnhout_",Variabele, "_bw",".jpg"), width = 1080, height = 720, units = "px", scale = 3)
+         filename = paste0("./exports/boxplots2022_2024/", "Turnhout_",Variabele, "_bw",".jpg"), width = 1080, height = 720, units = "px", scale = 3)
 }
 
 # meetreeks <2020
@@ -114,7 +116,7 @@ for (Variabele in Componenten) {
     labs(title = paste0("Turnhout variabele ",data_figuur$label, "\n")) +
     ylab("Locatie") + xlab(paste0("Meetwaarde (", data_figuur$AquaUnit ,")"))
   ggsave(figuur,
-         filename = paste0("./exports/boxplots2022-23/", "Turnhout_",Variabele, "_bw",".jpg"), width = 1080, height = 720, units = "px", scale = 3)
+         filename = paste0("./exports/boxplots2020/", "Turnhout_",Variabele, "_bw",".jpg"), width = 1080, height = 720, units = "px", scale = 3)
 }
 ```
 
@@ -195,12 +197,12 @@ data_TVG %>%
   write.csv2(file = "./exports/pH.csv")
 
 data_TVG %>%
-  filter(AquaComponent %in% "pH_veld" & meetreeks == "2024" & codeplas %in% reeks_2024) %>%
+  filter(AquaComponent %in% "pH_veld" & meetreeks == "2022-2024") %>%
   group_by(codeplas) %>%
   summarise(pH_min = min(ResultCalc, na.rm = TRUE),
             pH_max = max(ResultCalc, na.rm = TRUE),
             pH_bereik = paste(min(ResultCalc, na.rm = TRUE), "-", max(ResultCalc, na.rm = TRUE))) %>%
-  write.csv2(file = "./exports/pH24.csv")
+  write.csv2(file = "./exports/pH2224.csv")
 
 data_TVG %>%
   filter(AquaComponent %in% "pH_veld" & meetreeks == "2022-2023" & codeplas %in% reeks_2022_2023) %>%
@@ -251,12 +253,12 @@ for (ID in locaties) {
 ```{r}
 # Secchi-diepte (SD_veld)
 data_TVG %>%
-  filter(AquaComponent %in% "SD_veld" & meetreeks == "2024" & codeplas %in% reeks_2024) %>%
+  filter(AquaComponent %in% "SD_veld" & meetreeks == "2022-2024") %>%
   mutate(month = format(FieldSamplingDate, "%m")) %>%
   filter(month %in% c("04", "05", "06", "07", "08", "09")) %>%
   group_by(codeplas) %>%
   summarise(SD_zhjgem = mean(ResultCalc, na.rm = TRUE)) %>%
-  write.csv2(file = "./exports/SD_zhj_24.csv")
+  write.csv2(file = "./exports/SD_zhj_2224.csv")
 
 data_TVG %>%
   filter(AquaComponent %in% "SD_veld" & meetreeks == "2022-2023" & codeplas %in% reeks_2022_2023) %>%
@@ -422,10 +424,10 @@ for (ID in locaties) {
 ```{r}
 # concentratie
 data_TVG %>%
-  filter(AquaComponent %in% "O2_veld" & codeplas %in% reeks_2024 & meetreeks == "2024") %>%
+  filter(AquaComponent %in% "O2_veld" & meetreeks == "2022-2024") %>%
   group_by(codeplas) %>%
   summarise(O2_10p = quantile(ResultCalc,probs = 0.1, na.rm = TRUE)) %>%
-  write.csv2(file = "./exports/O2_conc_2024.csv")
+  write.csv2(file = "./exports/O2_conc_2224.csv")
 data_TVG %>%
   filter(AquaComponent %in% "O2_veld" & codeplas %in% reeks_2022_2023 & meetreeks == "2022-2023") %>%
   group_by(codeplas) %>%
@@ -434,10 +436,11 @@ data_TVG %>%
 
 # verzadiging
 data_TVG %>%
-  filter(AquaComponent %in% "O2verz" & codeplas %in% reeks_2024 & meetreeks == "2024") %>%
+  filter(AquaComponent %in% "O2verz"& meetreeks == "2022-2024") %>%
   group_by(codeplas) %>%
   summarise(O2_verz_max = max(ResultCalc, na.rm = TRUE)) %>%
-  write.csv2(file = "./exports/O2_verz_2024.csv")
+  write.csv2(file = "./exports/O2_verz_2224.csv")
+
 data_TVG %>%
   filter(AquaComponent %in% "O2verz" & codeplas %in% reeks_2022_2023 & meetreeks == "2022-2023") %>%
   group_by(codeplas) %>%
@@ -454,10 +457,10 @@ data_TVG %>%
   write.csv2(file = "./exports/Temp_veld.csv")
 
 data_TVG %>%
-  filter(AquaComponent %in% "T_veld" & meetreeks == "2024" & codeplas %in% reeks_2024) %>%
+  filter(AquaComponent %in% "T_veld" & meetreeks == "2022-2024") %>%
   group_by(codeplas) %>%
   summarise(Temp_max = max(ResultCalc, na.rm = TRUE)) %>%
-  write.csv2(file = "./exports/Temp_veld24.csv")
+  write.csv2(file = "./exports/Temp_veld2224.csv")
 
 data_TVG %>%
   filter(AquaComponent %in% "T_veld" & meetreeks == "2022-2023" & codeplas %in% reeks_2022_2023) %>%
@@ -557,10 +560,10 @@ data_TVG %>%
 ```{r}
 # Geleidbaarheid
 data_TVG %>%
-  filter(AquaComponent %in% "EGV25_veld" & meetreeks == "2024" & codeplas %in% reeks_2024)  %>%
+  filter(AquaComponent %in% "EGV25_veld" & meetreeks == "2022-2024")  %>%
   group_by(codeplas) %>%
   summarise(EGV_90p = quantile(ResultCalc, probs = 0.9, na.rm = TRUE)) %>%
-  write.csv2(file = "./exports/EGV24.csv")
+  write.csv2(file = "./exports/EGV2224.csv")
 
 data_TVG %>%
   filter(AquaComponent %in% "EGV25_veld" & meetreeks == "2022-2023" & codeplas %in% reeks_2022_2023)  %>%
