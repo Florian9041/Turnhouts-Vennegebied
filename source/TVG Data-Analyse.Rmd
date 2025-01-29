@@ -51,6 +51,9 @@ data_TVG$Unit[data_TVG$Unit == "M"] <- "m"
 #  select(codeplas, HabtypeVel) %>%
 #  unique() %>%
 #  write.csv2(file = "./exports/habitattype.csv")
+
+data_TVG <- data_TVG %>%
+  left_join(data_locaties[,c(2,7)], by = "codeplas")
 ```
 
 # voeg ResultCalc toe als kolom voor meetwaarden onder detectielimiet
@@ -105,6 +108,19 @@ for (Variabele in Componenten) {
   ggsave(figuur,
          filename = paste0("./exports/boxplots2022_2024/", "Turnhout_",Variabele, "_bw",".jpg"), width = 1080, height = 720, units = "px", scale = 3)
 }
+
+vline_Cl <- data.frame(
+  watertype = c("Aw-om", "Cb", "Czb", "Zm", "Zs"),
+  xintercept = c(140, 70, 50, 20, 20)
+)
+
+data_TVG %>%
+  filter(AquaComponent == "Cl" & meetreeks == "2022-2024") %>%
+  ggplot(aes(x = ResultCalc, y = codeplas, colour = watertype)) +
+  geom_boxplot() +
+  facet_grid(watertype ~ ., scales = "free", space = "free_y") +
+  geom_vline(data = vline_Cl, aes(xintercept = xintercept, colour = watertype), 
+             linetype = "solid", size = 1)  # Customize the line style if needed
 
 # meetreeks <2020
 for (Variabele in Componenten) {
@@ -509,10 +525,11 @@ data_TVG %>%
 
 ## Calcium max zomer
 data_TVG %>%
-  filter(AquaComponent %in% "Ca" & meetreeks == "2024" & codeplas %in% reeks_2024 & seizoen == "zomer") %>%
+  filter(AquaComponent %in% "Ca" & meetreeks == "2022-2024" & seizoen == "zomer") %>%
   group_by(codeplas) %>%
   summarise(Ca_maxzomer = max(ResultCalc, na.rm = TRUE)) %>%
-  write.csv2(file = "./exports/Ca_maxzomer24.csv")
+  write.csv2(file = "./exports/Ca_maxzomer2224.csv")
+
 data_TVG %>%
   filter(AquaComponent %in% "Ca" & meetreeks == "2022-2023" & codeplas %in% reeks_2022_2023 & seizoen == "zomer")  %>%
   group_by(codeplas) %>%
@@ -564,6 +581,21 @@ data_TVG %>%
   summarise(EGV_90p = quantile(ResultCalc, probs = 0.9, na.rm = TRUE)) %>%
   write.csv2(file = "./exports/EGV2022-23.csv")
 
+## boxplots EGV
+vline_EGV <- data.frame(
+  watertype = c("Aw-om", "Cb", "Czb", "Zm", "Zs"),
+  xintercept = c(750, 350, 250, 100, 100)
+)
+
+data_TVG %>%
+  filter(AquaComponent == "EGV25_veld" & meetreeks == "2022-2024") %>%
+  ggplot(aes(x = ResultCalc, y = codeplas, colour = watertype)) +
+  geom_boxplot() +
+  xlab("Elektrische geleidbaarheid (µS/cm 20°C)") +
+  facet_grid(watertype ~ ., scales = "free", space = "free_y") +
+  geom_vline(data = vline_EGV, aes(xintercept = xintercept, colour = watertype), 
+             linetype = "solid", size = 1) +
+  scale_x_continuous(breaks = pretty_breaks(n = 10))
 
 # Sulfaat (SO4)
 data_TVG %>%
@@ -592,12 +624,10 @@ data_TVG %>%
 
 ## Natrium max zomer
 data_TVG %>%
-  filter(AquaComponent %in% "Na" & meetreeks == "2024" & codeplas %in% reeks_2024) %>%
-  mutate(month = format(FieldSamplingDate, "%m")) %>%
-  filter(month %in% c("04", "05", "06", "07", "08", "09")) %>%
+  filter(AquaComponent %in% "Na" & meetreeks == "2022-2024" & seizoen == "zomer") %>%
   group_by(codeplas) %>%
-  summarise(Na_gem = max(ResultCalc, na.rm = TRUE)) %>%
-  write.csv2(file = "./exports/Na_maxzomer24.csv")
+  summarise(Na_maxzhj = max(ResultCalc, na.rm = TRUE)) %>%
+  write.csv2(file = "./exports/Na_maxzomer2224.csv")
 
 data_TVG %>%
   filter(AquaComponent %in% "Na" & meetreeks == "2022-2023" & codeplas %in% reeks_2022_2023)  %>%
@@ -632,12 +662,10 @@ data_TVG %>%
 
 ## Chloride max zomer
 data_TVG %>%
-  filter(AquaComponent %in% "Cl" & meetreeks == "2024" & codeplas %in% reeks_2024) %>%
-  mutate(month = format(FieldSamplingDate, "%m")) %>%
-  filter(month %in% c("04", "05", "06", "07", "08", "09")) %>%
+  filter(AquaComponent %in% "Cl" & meetreeks == "2022-2024" & seizoen == "zomer") %>%
   group_by(codeplas) %>%
-  summarise(Cl_gem = max(ResultCalc, na.rm = TRUE)) %>%
-  write.csv2(file = "./exports/Cl_maxzomer24.csv")
+  summarise(Cl_maxzhj = max(ResultCalc, na.rm = TRUE)) %>%
+  write.csv2(file = "./exports/Cl_maxzomer2224.csv")
 
 data_TVG %>%
   filter(AquaComponent %in% "Cl" & meetreeks == "2022-2023" & codeplas %in% reeks_2022_2023)  %>%
@@ -646,6 +674,23 @@ data_TVG %>%
   group_by(codeplas) %>%
   summarise(Cl_maxzomer = max(ResultCalc, na.rm = TRUE)) %>%
   write.csv2(file = "./exports/Cl_maxzomer22-23.csv")
+
+## boxplots Chloride
+vline_Cl <- data.frame(
+  watertype = c("Aw-om", "Cb", "Czb", "Zm", "Zs"),
+  xintercept = c(140, 70, 50, 20, 20)
+)
+
+data_TVG %>%
+  filter(AquaComponent == "Cl" & meetreeks == "2022-2024") %>%
+  ggplot(aes(x = ResultCalc, y = codeplas, colour = watertype)) +
+  geom_boxplot() +
+  xlab("Chloride-concentratie (mg/l)") +
+  facet_grid(watertype ~ ., scales = "free", space = "free_y") +
+  geom_vline(data = vline_Cl, aes(xintercept = xintercept, colour = watertype), 
+             linetype = "solid", size = 1) +
+  scale_x_continuous(breaks = pretty_breaks(n = 10))
+
 
 
 # saliniteit
@@ -714,11 +759,11 @@ data_TVG %>%
 
 ## Van Calster NO2_N gemiddelde & maximum
 data_TVG %>%
-  filter(AquaComponent %in% "NO2_N" & meetreeks == "2024" & codeplas %in% reeks_2024) %>%
+  filter(AquaComponent %in% "NO2_N" & meetreeks == "2022-2024") %>%
   group_by(codeplas) %>%
   summarise(NO2_Ngem = mean(ResultCalc),
             NO2_Nmax = max(ResultCalc)) %>%
-  write.csv2(file = "./exports/NO2_Ngemmax_24.csv")
+  write.csv2(file = "./exports/NO2_Ngemmax_2224.csv")
 
 data_TVG %>%
   filter(AquaComponent %in% "NO2_N" & meetreeks == "2022-2023" & codeplas %in% reeks_2022_2023) %>%
@@ -772,12 +817,9 @@ N_anorg$AquaUnit <- "mg N/l"
 N_anorg$Component <- "N_anorg"
 N_anorg <- N_anorg %>%
   mutate(meetreeks = case_when(
-           FieldSamplingDate < as.Date("2020-01-01") ~ "<2020",
-           FieldSamplingDate < as.Date("2023-12-31") ~ "2022-2023",
-           FieldSamplingDate > as.Date("2023-12-31") ~ "2024",
-           TRUE ~ "fout"), 
-         seizoen = case_when(
-           format(FieldSamplingDate, "%m") %in% c(4:9) ~ "zomer",
+           FieldSamplingDate < as.Date("2020-01-01") ~ "<2020",TRUE ~ "2022-2024"), 
+         seizoen = case_when(as.numeric(
+           format(FieldSamplingDate, "%m")) %in% c(4:9) ~ "zomer",
            TRUE ~ "winter"))
 data_met_N_anorg <- bind_rows(data_TVG, N_anorg)
 
@@ -792,15 +834,15 @@ data_met_N_anorg %>%
 
 # maximum (van Calster)
 data_met_N_anorg %>%
-  filter(AquaComponent %in% "N_anorg" & meetreeks == "2024" & codeplas %in% reeks_2024) %>%
+  filter(AquaComponent %in% "N_anorg" & meetreeks == "2022-2024" ) %>%
   group_by(codeplas) %>%
-  summarise(N_anorg_max = max(ResultCalc)) %>%
-  write.csv2(file = "./exports/N_anorg_max2024.csv")
+  summarise(N_anorg_max = max(ResultCalc, na.rm = TRUE)) %>%
+  write.csv2(file = "./exports/N_anorg_max2224.csv")
 
 data_met_N_anorg %>%
   filter(AquaComponent %in% "N_anorg" & meetreeks == "2022-2023" & codeplas %in% reeks_2022_2023) %>%
   group_by(codeplas) %>%
-  summarise(N_anorg_max = max(ResultCalc)) %>%
+  summarise(N_anorg_max = max(ResultCalc, na.rm = TRUE)) %>%
   write.csv2(file = "./exports/N_anorg_max2022-23.csv")
 
 write.csv2(data_met_N_anorg, file = "./data/Data_Kalmthout_met_Nanorg.csv")
