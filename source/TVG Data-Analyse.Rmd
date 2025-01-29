@@ -238,6 +238,25 @@ for (ID in locaties) {
          filename = paste0("./exports/pH/", ID,"_pH", ".jpg"), width = 1080, height = 720, units = "px", scale = 3)
 }
 
+## boxplots zuurtegraad
+vline_pH <- data.frame(
+  watertype = c("Aw-om", "Cb", "Czb", "Zm", "Zs"),
+  xinterceptmin = c(6.5, 5.5, 5.5, 4.5, 4.5),
+  xinterceptmax = c(8.5, 7.5, 7.5, 6.5, 6.5)
+)
+
+data_TVG %>%
+  filter(AquaComponent == "pH_veld" & meetreeks == "2022-2024") %>%
+  ggplot(aes(x = ResultCalc, y = codeplas, colour = watertype)) +
+  geom_boxplot() +
+  xlab("Zuurtegraad") +
+  facet_grid(watertype ~ ., scales = "free", space = "free_y") +
+  geom_vline(data = vline_pH, aes(xintercept = xinterceptmin, colour = watertype), 
+             linetype = "solid", size = 1) +
+  geom_vline(data = vline_pH, aes(xintercept = xinterceptmax, colour = watertype), 
+             linetype = "solid", size = 1) +
+  scale_x_continuous(breaks = pretty_breaks(n = 10))
+
 
 # zuurtegraad en absorptie
 
@@ -283,6 +302,35 @@ data_TVG %>%
   group_by(codeplas) %>%
   summarise(SD_zhjgem = mean(ResultCalc, na.rm = TRUE)) %>%
   write.csv2(file = "./exports/SD_zhj_2022-23.csv")
+
+# boxplot voor Secchi-diepte
+vline_SD <- data.frame(
+  watertype = c("Aw-om", "Cb", "Czb", "Zm", "Zs"),
+  xintercept <- 0.9
+)
+data_SD_WD <- data_TVG %>% filter(AquaComponent %in% c("SD_veld", "WD_veld") & meetreeks == "2022-2024") %>%
+  group_by(codeplas, AquaComponent) %>%
+  mutate(gemiddelde = mean(ResultCalc, na.rm = TRUE)) %>%
+  ungroup() %>%
+  group_by(codeplas) %>%
+  mutate(Bodemzicht = case_when(
+    all(gemiddelde[AquaComponent == "SD_veld"] >= 0.9 * gemiddelde[AquaComponent == "WD_veld"]) ~ "ja",
+    TRUE ~ "nee"
+  )) %>% ungroup()
+
+data_SD_WD %>% filter(AquaComponent %in% "SD_veld") %>%
+  ggplot(aes(x = ResultCalc, y = codeplas, colour = watertype, fill = Bodemzicht)) +  # Map 'bodemzicht' to 'fill' and 'watertype' to 'colour'
+  geom_boxplot() +
+  xlab("Secchi-diepte (m)") +
+  facet_grid(watertype ~ ., scales = "free", space = "free_y") +
+  geom_vline(data = vline_SD, aes(xintercept = xintercept, colour = watertype),
+             linetype = "solid", size = 1) +
+  scale_x_continuous(breaks = pretty_breaks(n = 10)) + # Customize color for AquaComponent
+  scale_fill_manual(values = c("ja" = "lightblue", "nee" = "grey")) +  # Customize color for Bodemzicht
+  theme(legend.position = "right") +  # Position the legends at the bottom
+  guides(colour = guide_legend(title = "Watertype"),  # Keep legend for 'watertype'
+         fill = guide_legend(title = "Bodemzicht"))  # Keep legend for 'bodemzicht'
+
 
 # Waterdiepte (WD_diepte)
 data_TVG %>%
@@ -440,6 +488,22 @@ data_TVG %>%
   summarise(O2_10p = quantile(ResultCalc,probs = 0.1, na.rm = TRUE)) %>%
   write.csv2(file = "./exports/O2_conc_2022-23.csv")
 
+## boxplots zuurstofconcentratie
+vline_O2conc <- data.frame(
+  watertype = c("Aw-om", "Cb", "Czb", "Zm", "Zs"),
+  xintercept <- 6
+)
+
+data_TVG %>%
+  filter(AquaComponent == "O2_veld" & meetreeks == "2022-2024") %>%
+  ggplot(aes(x = ResultCalc, y = codeplas, colour = watertype)) +
+  geom_boxplot() +
+  xlab("Zuurstofconcentratie (mg/l)") +
+  facet_grid(watertype ~ ., scales = "free", space = "free_y") +
+  geom_vline(data = vline_O2conc, aes(xintercept = xintercept, colour = watertype), 
+             linetype = "solid", size = 1) +
+  scale_x_continuous(breaks = pretty_breaks(n = 10))
+
 # verzadiging
 data_TVG %>%
   filter(AquaComponent %in% "O2verz"& meetreeks == "2022-2024") %>%
@@ -452,6 +516,23 @@ data_TVG %>%
   group_by(codeplas) %>%
   summarise(O2_verz_max = max(ResultCalc, na.rm = TRUE)) %>%
   write.csv2(file = "./exports/O2_verz_2022-23.csv")
+
+## boxplots zuurstofverzadiging
+vline_O2verz <- data.frame(
+  watertype = c("Aw-om", "Cb", "Czb", "Zm", "Zs"),
+  xintercept <- 120
+)
+
+data_TVG %>%
+  filter(AquaComponent == "O2verz" & meetreeks == "2022-2024") %>%
+  ggplot(aes(x = ResultCalc, y = codeplas, colour = watertype)) +
+  geom_boxplot() +
+  xlab("Zuurstofverzadiging (%)") +
+  facet_grid(watertype ~ ., scales = "free", space = "free_y") +
+  geom_vline(data = vline_O2verz, aes(xintercept = xintercept, colour = watertype), 
+             linetype = "solid", size = 1) +
+  scale_x_continuous(breaks = pretty_breaks(n = 10))
+
 ```
 
 # Temperatuur
@@ -473,6 +554,23 @@ data_TVG %>%
   group_by(codeplas) %>%
   summarise(Temp_max = max(ResultCalc, na.rm = TRUE)) %>%
   write.csv2(file = "./exports/Temp_veld22_23.csv")
+
+## boxplots temperatuur
+vline_Tveld <- data.frame(
+  watertype = c("Aw-om", "Cb", "Czb", "Zm", "Zs"),
+  xintercept = c(25, 25, 25, 25, 25)
+)
+
+data_TVG %>%
+  filter(AquaComponent == "T_veld" & meetreeks == "2022-2024") %>%
+  ggplot(aes(x = ResultCalc, y = codeplas, colour = watertype)) +
+  geom_boxplot() +
+  xlab("Temperatuur (°C)") +
+  facet_grid(watertype ~ ., scales = "free", space = "free_y") +
+  geom_vline(data = vline_Tveld, aes(xintercept = xintercept, colour = watertype), 
+             linetype = "solid", size = 1) +
+  scale_x_continuous(breaks = pretty_breaks(n = 10))
+
 ```
 
 # Alkaliniteit, Natrium, Silicium, Calcium, Kalium, Magnesium
@@ -495,6 +593,16 @@ data_TVG %>%
             Alk_max = max(ResultCalc, na.rm = TRUE),
             Alk_bereik = paste(min(ResultCalc, na.rm = TRUE), "-", max(ResultCalc, na.rm = TRUE))) %>%
   write.csv2(file = "./exports/Alka_22-23.csv")
+
+## boxplots alkaliniteit
+data_TVG %>%
+  filter(AquaComponent == "alkaliniteit" & meetreeks == "2022-2024") %>%
+  ggplot(aes(x = ResultCalc, y = codeplas, colour = watertype)) +
+  geom_boxplot() +
+  xlab("Alkaliniteit (meq/l)") +
+  facet_grid(watertype ~ ., scales = "free", space = "free_y") +
+  scale_x_continuous(breaks = pretty_breaks(n = 10))
+
 
 
 # Silicium
@@ -608,6 +716,16 @@ data_TVG %>%
   group_by(codeplas) %>%
   summarise(SO4_gem = mean(ResultCalc, na.rm = TRUE)) %>%
   write.csv2(file = "./exports/SO4_22-23.csv")
+
+## boxplots SO4
+data_TVG %>%
+  filter(AquaComponent == "SO4" & meetreeks == "2022-2024") %>%
+  ggplot(aes(x = ResultCalc, y = codeplas, colour = watertype)) +
+  geom_boxplot() +
+  xlab("Sulfaat-concentratie (mg/l)") +
+  facet_grid(watertype ~ ., scales = "free", space = "free_y") +
+  scale_x_continuous(breaks = pretty_breaks(n = 10))
+
 
 # Natrium
 data_TVG %>%
