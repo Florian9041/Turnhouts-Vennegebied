@@ -143,7 +143,7 @@ save_plot <- function(dataset, component, naam, title = NULL, xas = NULL, yas = 
   figuur <- dataset %>%
     filter(AquaComponent %in% component) %>%  
     ggplot(aes(x = FieldSamplingDate, y = ResultCalc, color = Label, linetype = codeplas)) +
-    scale_x_date(date_breaks = "1 month", date_labels = "%b-%Y") + # visualiseert data per maand in format maand-jaar
+    scale_x_date(date_breaks = "1 month", date_labels = "%m/%y") + # visualiseert data per maand in format maand-jaar
     geom_line(linewidth = 1) +
     geom_point() +
     labs(title = title) + xlab(xas) + ylab(yas)
@@ -157,7 +157,7 @@ maak_plot <- function(dataset, component, title = NULL, xas = NULL, yas = NULL){
   figuur <- dataset %>%
     filter(AquaComponent %in% component) %>%  
     ggplot(aes(x = FieldSamplingDate, y = ResultCalc, color = label)) +
-    scale_x_date(date_breaks = "1 month", date_labels = "%b-%Y") + # visualiseert data per maand in format maand-jaar
+    scale_x_date(date_breaks = "1 month", date_labels = "%m/%y") + # visualiseert data per maand in format maand-jaar
     geom_line(linewidth = 1) +
     geom_point() +
     labs(title = title) + xlab(xas) + ylab(yas)
@@ -169,7 +169,7 @@ maak_plot_area <- function(dataset, component, title = NULL, xas = NULL, yas = N
   figuur <- dataset %>%
     filter(AquaComponent %in% component) %>%  
     ggplot(aes(x = FieldSamplingDate, y = ResultCalc, fill = label)) +
-    scale_x_date(date_breaks = "1 month", date_labels = "%b-%Y") + # visualiseert data per maand in format maand-jaar
+    scale_x_date(date_breaks = "1 month", date_labels = "%m/%y") + # visualiseert data per maand in format maand-jaar
     geom_line() +
     geom_area(position = "identity", alpha = 0.6) +
     labs(title = title) + xlab(xas) + ylab(yas)
@@ -180,7 +180,7 @@ maak_plot_1var <- function(dataset, component, title = NULL, xas = "Datum staaln
   figuur <- dataset %>%
     filter(AquaComponent %in% component) %>%  
     ggplot(aes(x = FieldSamplingDate, y = ResultCalc)) +
-    scale_x_date(date_breaks = "1 month", date_labels = "%b-%Y") + # visualiseert data per maand in format maand-jaar
+    scale_x_date(date_breaks = "1 month", date_labels = "%m/%y") + # visualiseert data per maand in format maand-jaar
     scale_y_continuous(breaks = pretty_breaks(n = 10)) +
     geom_line(linewidth = 1, color = "orange") +
     geom_point(color = "orange") +
@@ -193,7 +193,7 @@ maak_plot_1var_loc <- function(dataset, component, title = NULL, xas = "Datum st
   figuur <- dataset %>%
     filter(AquaComponent %in% component) %>%  
     ggplot(aes(x = FieldSamplingDate, y = ResultCalc, color = codeplas)) +
-    scale_x_date(date_breaks = "1 month", date_labels = "%b-%Y") + # visualiseert data per maand in format maand-jaar
+    scale_x_date(date_breaks = "1 month", date_labels = "%m/%y") + # visualiseert data per maand in format maand-jaar
     scale_y_continuous(breaks = pretty_breaks(n = 10)) +
     geom_line(linewidth = 1) +
     geom_point() +
@@ -868,12 +868,13 @@ data_TVG %>%
 
 
 # figuren chloride
-for (ID in locaties) {
-  figuur <- maak_plot_1var(data_TVG %>% filter(codeplas %in% ID), "pH_veld" , paste("Zuurtegraad (pH)", ID, "_meetreeks\n"), yas = "Meetwaarde") +
+for (ID in reeks_2022_2024) {
+  data_figuur <- data_TVG %>% filter(meetreeks == "2022-2024")
+  figuur <- maak_plot_1var(data_figuur %>% filter(codeplas %in% ID), "Cl") +
   scale_y_continuous(breaks = pretty_breaks(n = 10))
   print(figuur)
   ggsave(plot = figuur,
-         filename = paste0("./exports/pH/", ID,"_pH", ".jpg"), width = 1080, height = 720, units = "px", scale = 3)
+         filename = paste0("./exports/Chloride/", ID,"_Cl", ".jpg"), width = 1080, height = 720, units = "px", scale = 3)
 }
 
 # saliniteit
