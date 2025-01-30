@@ -392,6 +392,24 @@ data_TVG %>%
   summarise(ZS105_gem = mean(ResultCalc, na.rm = TRUE)) %>%
   write.csv2(file = "./exports/ZS105_gem.csv")
 
+# Zwevende stof 105 boxplot
+data_TVG %>%
+  filter(AquaComponent == "ZS_105" & meetreeks == "2022-2024") %>%
+  ggplot(aes(x = ResultCalc, y = codeplas, colour = watertype)) +
+  geom_boxplot() +
+  xlab("Zwevende stof (mg/l 105°C)") +
+  facet_grid(watertype ~ ., scales = "free", space = "free_y") +
+  scale_x_continuous(breaks = pretty_breaks(n = 10))
+
+# Zwevende stof 550 boxplot
+data_TVG %>%
+  filter(AquaComponent == "ZS_550" & meetreeks == "2022-2024") %>%
+  ggplot(aes(x = ResultCalc, y = codeplas, colour = watertype)) +
+  geom_boxplot() +
+  xlab("Zwevende stof (mg/l 550°C)") +
+  facet_grid(watertype ~ ., scales = "free", space = "free_y") +
+  scale_x_continuous(breaks = pretty_breaks(n = 10))
+
 ## voor 2024
 locaties <- unique(data_TVG$codeplas[data_TVG$meetreeks == "2024"])
 
@@ -433,6 +451,14 @@ data_TVG %>%
   summarise(abs_zhjgem = mean(ResultCalc, na.rm = TRUE)) %>%
   write.csv2(file = "./exports/abs_zhj_2022-23.csv")
 
+# absorptie 440 nm
+data_TVG %>%
+  filter(AquaComponent == "absorptie_440" & meetreeks == "2022-2024") %>%
+  ggplot(aes(x = ResultCalc, y = codeplas, colour = watertype)) +
+  geom_boxplot() +
+  xlab("Absorptie 440 nm (ABS)") +
+  facet_grid(watertype ~ ., scales = "free", space = "free_y") +
+  scale_x_continuous(breaks = pretty_breaks(n = 10))
 
 # chlorofyl-a
 data_TVG %>%
@@ -448,6 +474,22 @@ data_TVG %>%
   group_by(codeplas) %>%
   summarise(chla_zhjgem = mean(ResultCalc, na.rm = TRUE)) %>%
   write.csv2(file = "./exports/chl_a_zhj_2022-23.csv")
+
+## boxplots chlorofyl
+vline_chla <- data.frame(
+  watertype = c("Aw-om", "Cb", "Czb", "Zm", "Zs"),
+  xintercept <- 10
+)
+
+data_TVG %>%
+  filter(AquaComponent == "chl_a" & meetreeks == "2022-2024") %>%
+  ggplot(aes(x = ResultCalc, y = codeplas, colour = watertype)) +
+  geom_boxplot() +
+  xlab("Chlorofyl a (µg/l)") +
+  facet_grid(watertype ~ ., scales = "free", space = "free_y") +
+  geom_vline(data = vline_chla, aes(xintercept = xintercept, colour = watertype), 
+             linetype = "solid", size = 1) +
+  scale_x_continuous(limits = c(0,200), breaks = pretty_breaks(n = 10))
 
 # chl_a, SD (WD) en absorptie_440
 ## voor 2024
@@ -595,15 +637,23 @@ data_TVG %>%
   write.csv2(file = "./exports/Alka_22-23.csv")
 
 ## boxplots alkaliniteit
+vline_alk <- data.frame(
+  watertype = c("Aw-om", "Cb", "Czb", "Zm", "Zs"),
+  xinterceptmin = c(0.1, NA, 0.1, 0.1, 0.03),
+  xinterceptmax = c(1, NA, 1, 1, 0.1)
+)
+
 data_TVG %>%
   filter(AquaComponent == "alkaliniteit" & meetreeks == "2022-2024") %>%
   ggplot(aes(x = ResultCalc, y = codeplas, colour = watertype)) +
   geom_boxplot() +
   xlab("Alkaliniteit (meq/l)") +
   facet_grid(watertype ~ ., scales = "free", space = "free_y") +
+  geom_vline(data = vline_alk, aes(xintercept = xinterceptmin, colour = watertype), 
+             linetype = "solid", size = 1) +
+  geom_vline(data = vline_alk, aes(xintercept = xinterceptmax, colour = watertype), 
+             linetype = "solid", size = 1) +
   scale_x_continuous(breaks = pretty_breaks(n = 10))
-
-
 
 # Silicium
 data_TVG %>%
@@ -717,13 +767,20 @@ data_TVG %>%
   summarise(SO4_gem = mean(ResultCalc, na.rm = TRUE)) %>%
   write.csv2(file = "./exports/SO4_22-23.csv")
 
-## boxplots SO4
+## boxplots EGV
+vline_SO4 <- data.frame(
+  watertype = c("Aw-om", "Cb", "Czb", "Zm", "Zs"),
+  xintercept = c(100, 50, 40, 15, 15)
+)
+
 data_TVG %>%
   filter(AquaComponent == "SO4" & meetreeks == "2022-2024") %>%
   ggplot(aes(x = ResultCalc, y = codeplas, colour = watertype)) +
   geom_boxplot() +
-  xlab("Sulfaat-concentratie (mg/l)") +
+  xlab("Sulfaat (mg/l)") +
   facet_grid(watertype ~ ., scales = "free", space = "free_y") +
+  geom_vline(data = vline_SO4, aes(xintercept = xintercept, colour = watertype), 
+             linetype = "solid", size = 1) +
   scale_x_continuous(breaks = pretty_breaks(n = 10))
 
 
@@ -810,6 +867,14 @@ data_TVG %>%
   scale_x_continuous(breaks = pretty_breaks(n = 10))
 
 
+# figuren chloride
+for (ID in locaties) {
+  figuur <- maak_plot_1var(data_TVG %>% filter(codeplas %in% ID), "pH_veld" , paste("Zuurtegraad (pH)", ID, "_meetreeks\n"), yas = "Meetwaarde") +
+  scale_y_continuous(breaks = pretty_breaks(n = 10))
+  print(figuur)
+  ggsave(plot = figuur,
+         filename = paste0("./exports/pH/", ID,"_pH", ".jpg"), width = 1080, height = 720, units = "px", scale = 3)
+}
 
 # saliniteit
 data_TVG %>%
@@ -845,6 +910,58 @@ data_TVG %>%
   summarise(zhjgem = mean(ResultCalc, na.rm = TRUE)) %>%
   write.csv2(file = "./exports/TN_TP_zhj_22-23.csv")
 
+## boxplots TN
+vline_TN <- data.frame(
+  watertype = c("Aw-om", "Cb", "Czb", "Zm", "Zs"),
+  xintercept = c(1, 1.3, 1.3, 1.3, 1.3)
+)
+
+data_TVG %>%
+  filter(AquaComponent == "TN" & meetreeks == "2022-2024") %>%
+  ggplot(aes(x = ResultCalc, y = codeplas, colour = watertype)) +
+  geom_boxplot() +
+  xlab("Totale stikstof (mg N/l)") +
+  facet_grid(watertype ~ ., scales = "free", space = "free_y") +
+  geom_vline(data = vline_TN, aes(xintercept = xintercept, colour = watertype), 
+             linetype = "solid", size = 1) +
+  scale_x_continuous(limits = c(0,10), breaks = pretty_breaks(n = 10))
+
+data_TVG %>%
+  filter(AquaComponent == "TN" & meetreeks == "2022-2024" & seizoen == "zomer") %>%
+  ggplot(aes(x = ResultCalc, y = codeplas, colour = watertype)) +
+  geom_boxplot() +
+  xlab("Totale stikstof (mg N/l)") +
+  facet_grid(watertype ~ ., scales = "free", space = "free_y") +
+  geom_vline(data = vline_TN, aes(xintercept = xintercept, colour = watertype), 
+             linetype = "solid", size = 1) +
+  scale_x_continuous(limits = c(0,10), breaks = pretty_breaks(n = 10))
+
+## boxplots TP
+vline_TP <- data.frame(
+  watertype = c("Aw-om", "Cb", "Czb", "Zm", "Zs"),
+  xintercept = c(0.04, 0.04, 0.03, 0.03, 0.03)
+)
+
+data_TVG %>%
+  filter(AquaComponent == "TP" & meetreeks == "2022-2024") %>%
+  ggplot(aes(x = ResultCalc, y = codeplas, colour = watertype)) +
+  geom_boxplot() +
+  xlab("Totale fosfor (mg P/l)") +
+  facet_grid(watertype ~ ., scales = "free", space = "free_y") +
+  geom_vline(data = vline_TP, aes(xintercept = xintercept, colour = watertype), 
+             linetype = "solid", size = 1) +
+  scale_x_continuous(limits = c(0,1), breaks = pretty_breaks(n = 10))
+
+data_TVG %>%
+  filter(AquaComponent == "TP" & meetreeks == "2022-2024" & seizoen == "zomer") %>%
+  ggplot(aes(x = ResultCalc, y = codeplas, colour = watertype)) +
+  geom_boxplot() +
+  xlab("Totale fosfor (mg P/l)") +
+  facet_grid(watertype ~ ., scales = "free", space = "free_y") +
+  geom_vline(data = vline_TP, aes(xintercept = xintercept, colour = watertype), 
+             linetype = "solid", size = 1) +
+  scale_x_continuous(limits = c(0,1), breaks = pretty_breaks(n = 10))
+
 # NO3-N
 data_TVG %>%
   filter(AquaComponent %in% "NO3_N" & meetreeks == "2022-2024" & seizoen == "zomer") %>%
@@ -860,6 +977,15 @@ data_TVG %>%
   summarise(NO3_N_zhj = mean(ResultCalc)) %>%
   write.csv2(file = "./exports/NO3_N_22-23.csv")
 
+## boxplots NO3_N
+data_TVG %>%
+  filter(AquaComponent == "NO3_N" & meetreeks == "2022-2024") %>%
+  ggplot(aes(x = ResultCalc, y = codeplas, colour = watertype)) +
+  geom_boxplot() +
+  xlab("Nitraat-stikstof (mg N/l)") +
+  facet_grid(watertype ~ ., scales = "free", space = "free_y") +
+  scale_x_continuous(limits = c(0,2), breaks = pretty_breaks(n = 10))
+
 # NO2-N
 data_TVG %>%
   filter(AquaComponent %in% "NO2_N" & meetreeks == "2022-2024" & seizoen == "zomer") %>%
@@ -874,6 +1000,23 @@ data_TVG %>%
   group_by(codeplas) %>%
   summarise(NO2_N_zhj = mean(ResultCalc)) %>%
   write.csv2(file = "./exports/NO2_N_22-23.csv")
+
+## boxplots NO2_N
+vline_NO2_N <- data.frame(
+  watertype = c("Aw-om", "Cb", "Czb", "Zm", "Zs"),
+  xintercept <- 0.2
+)
+
+data_TVG %>%
+  filter(AquaComponent == "NO2_N" & meetreeks == "2022-2024") %>%
+  ggplot(aes(x = ResultCalc, y = codeplas, colour = watertype)) +
+  geom_boxplot() +
+  xlab("Nitriet-stikstof (mg N/l)") +
+  facet_grid(watertype ~ ., scales = "free", space = "free_y") +
+  geom_vline(data = vline_NO2_N, aes(xintercept = xintercept, colour = watertype), 
+             linetype = "solid", size = 1) +
+  scale_x_continuous(breaks = pretty_breaks(n = 10))
+
 
 ## Van Calster NO2_N gemiddelde & maximum
 data_TVG %>%
@@ -905,6 +1048,15 @@ data_TVG %>%
   summarise(NH4_N_zhj = mean(ResultCalc)) %>%
   write.csv2(file = "./exports/NH4_N_22-23.csv")
 
+## boxplots NH4_N
+data_TVG %>%
+  filter(AquaComponent == "NH4_N" & meetreeks == "2022-2024") %>%
+  ggplot(aes(x = ResultCalc, y = codeplas, colour = watertype)) +
+  geom_boxplot() +
+  xlab("Ammonium-stikstof (mg N/l)") +
+  facet_grid(watertype ~ ., scales = "free", space = "free_y") +
+  scale_x_continuous(breaks = pretty_breaks(n = 10))
+
 # PO4-P
 data_TVG %>%
   filter(AquaComponent %in% "PO4_P" & meetreeks == "2022-2024" & seizoen == "zomer") %>%
@@ -919,6 +1071,15 @@ data_TVG %>%
   group_by(codeplas) %>%
   summarise(PO4_P_zhj = mean(ResultCalc)) %>%
   write.csv2(file = "./exports/PO4_P_22-23.csv")
+
+## PO4_P boxplots
+data_TVG %>%
+  filter(AquaComponent == "PO4_P" & meetreeks == "2022-2024") %>%
+  ggplot(aes(x = ResultCalc, y = codeplas, colour = watertype)) +
+  geom_boxplot() +
+  xlab("Orthofosfaat PO4_P (mg P/l)") +
+  facet_grid(watertype ~ ., scales = "free", space = "free_y") +
+  scale_x_continuous(breaks = pretty_breaks(n = 10))
 ```
 
 # Anorganische en organische stikstof
@@ -940,6 +1101,10 @@ N_anorg <- N_anorg %>%
            format(FieldSamplingDate, "%m")) %in% c(4:9) ~ "zomer",
            TRUE ~ "winter"))
 data_met_N_anorg <- bind_rows(data_TVG, N_anorg)
+data_met_N_anorg <- data_met_N_anorg %>%
+  left_join(data_locaties[,c(2,7)], by = "codeplas")
+data_met_N_anorg <- data_met_N_anorg %>% 
+  rename(watertype = watertype.y)
 
 # zomerhalfjaargemiddelde
 data_met_N_anorg %>%
@@ -964,6 +1129,23 @@ data_met_N_anorg %>%
   write.csv2(file = "./exports/N_anorg_max2022-23.csv")
 
 write.csv2(data_met_N_anorg, file = "./data/Data_Kalmthout_met_Nanorg.csv")
+
+## boxplots N_anorg (NH4_N + NO3_N + NO2_N)
+vline_N_anorg <- data.frame(
+  watertype = c("Aw-om", "Cb", "Czb", "Zm", "Zs"),
+  xintercept <- 0.14
+)
+
+data_met_N_anorg %>%
+  filter(AquaComponent == "N_anorg" & meetreeks == "2022-2024") %>%
+  ggplot(aes(x = ResultCalc, y = codeplas, colour = watertype)) +
+  geom_boxplot() +
+  xlab("Anorganische stikstof (mg N/l)") +
+  facet_grid(watertype ~ ., scales = "free", space = "free_y") +
+  geom_vline(data = vline_N_anorg, aes(xintercept = xintercept, colour = watertype), 
+             linetype = "solid", size = 1) +
+  scale_x_continuous(limits = c(0,6), breaks = pretty_breaks(n = 10))
+
 
 # TN, Anorg N
 locaties <- unique(data_met_N_anorg$codeplas[data_met_N_anorg$meetreeks == "2024"])
@@ -1119,47 +1301,34 @@ maucha <- function(x, col = NULL,
 ## Maak dataset met ionen
 ```{r}
 # dataset met ionen (gemiddelde waarde per locatie)
-# meetreeks 2024
-ionen24 <- data_TVG %>%
-  filter(AquaComponent %in% c("K", "Na", "Ca", "Mg", "SO4", "Cl", "HCO3_OEP", "CO3") & meetreeks == "2024" & codeplas %in% reeks_2024) %>%
+# meetreeks 2022-2024
+ionen22_24 <- data_TVG %>%
+  filter(AquaComponent %in% c("K", "Na", "Ca", "Mg", "SO4", "Cl", "HCO3_OEP", "CO3") & meetreeks == "2022-2024" & codeplas %in% reeks_2022_2024) %>%
   group_by(AquaComponent, codeplas) %>%
   summarise(gemiddelde = mean(ResultCalc))
 
 # to wide format
-ionenwide24 <- pivot_wider(ionen24, names_from = AquaComponent, values_from = gemiddelde)
-ionenwide24 <- ionenwide24 %>% select(codeplas, K, Na, Ca, Mg, SO4, Cl, HCO3_OEP, CO3)
-
-# meetreeks 2022-2023
-ionen22_23 <- data_TVG %>%
-  filter(AquaComponent %in% c("K", "Na", "Ca", "Mg", "SO4", "Cl", "HCO3_OEP", "CO3") & meetreeks == "2022-2023" & codeplas %in% reeks_2022_2023) %>%
-  group_by(AquaComponent, codeplas) %>%
-  summarise(gemiddelde = mean(ResultCalc))
-
-# to wide format
-ionenwide22_23 <- pivot_wider(ionen22_23, names_from = AquaComponent, values_from = gemiddelde)
-ionenwide22_23 <- ionenwide22_23 %>% select(codeplas, K, Na, Ca, Mg, SO4, Cl, HCO3_OEP, CO3)
+ionenwide22_24 <- pivot_wider(ionen22_24, names_from = AquaComponent, values_from = gemiddelde)
+ionenwide22_24 <- ionenwide22_24 %>% select(codeplas, K, Na, Ca, Mg, SO4, Cl, HCO3_OEP, CO3)
 ```
 
 
 ### Maucha-diagram voor alle locaties (gemiddelde per locatie)
 ```{r}
 # converteer kolom met locatiecode naar row.names voor maucha-functie
-ionenwide24 <- ionenwide24 %>% remove_rownames %>% column_to_rownames(var = "codeplas")
-maucha(ionenwide24)
-
-ionenwide22_23 <- ionenwide22_23 %>% remove_rownames %>% column_to_rownames(var = "codeplas")
-maucha(ionenwide22_23)
+ionenwide22_24 <- ionenwide22_24 %>% remove_rownames %>% column_to_rownames(var = "codeplas")
+maucha(ionenwide22_24)
 ```
 
 ### Maucha-diagram per locatie (figuur per maand)
 #### Tijdsreeks 2024 Maak dataset aan voor locatie x
 ```{r}
 # "ANTTUR0299" "ANTTUR0297" "ANTTUR0292" "ANTTUR0282" "ANTRAV0014"
-locatie <- ""
+locatie <- "ANTRAV0014"
 
 
 datamaucha <- data_TVG %>%
-  filter(AquaComponent %in% c("K", "Na", "Ca", "Mg", "SO4", "Cl", "HCO3_OEP", "CO3") & codeplas == locatie & meetreeks == "2024") %>%
+  filter(AquaComponent %in% c("K", "Na", "Ca", "Mg", "SO4", "Cl", "HCO3_OEP", "CO3") & codeplas == locatie & meetreeks == "2022-2024") %>%
   group_by(AquaComponent, FieldSamplingDate) %>%
   summarise(gemiddelde = mean(ResultCalc)) %>%
   select(FieldSamplingDate, AquaComponent, gemiddelde)
@@ -1216,9 +1385,9 @@ ref_punten <- data.frame(
 
 ## gemiddelde Cl en Ca concentraties per locatie
 ```{r}
-# voor meetreeks 2024 (5 locaties)
+# voor meetreeks 2022-24 (40 locaties)
 IREGVdata24 <- data_TVG %>% 
-  filter(AquaComponent %in% c("Ca", "Cl", "EGV25_veld") & meetreeks %in% "2024" & codeplas %in% reeks_2024) %>%
+  filter(AquaComponent %in% c("Ca", "Cl", "EGV25_veld") & meetreeks %in% "2022-2024") %>%
   group_by(codeplas, AquaComponent, meetreeks) %>% summarise(gemiddelde = mean(ResultCalc))
 
 ## naar wide format (componenten als kolommen)
@@ -1228,24 +1397,13 @@ IREGVwide24 <- pivot_wider(IREGVdata24, names_from = AquaComponent, values_from 
 IREGVwide24 <- IREGVwide24 %>%
   mutate(IR = ((Ca*2)/40.078) / (((Ca*2)/40.078) + (Cl/35.453)), name_ref = codeplas)
 
-# voor meetreeks 2022-23 (40 locaties)
-IREGVdata22_23 <- data_TVG %>% 
-  filter(AquaComponent %in% c("Ca", "Cl", "EGV25_veld") & meetreeks %in% "2022-2023" & codeplas %in% reeks_2022_2023) %>%
-  group_by(codeplas, AquaComponent, meetreeks) %>% summarise(gemiddelde = mean(ResultCalc))
-
-## naar wide format (componenten als kolommen)
-IREGVwide22_23 <- pivot_wider(IREGVdata22_23, names_from = AquaComponent, values_from = gemiddelde)
-
-## bereken en voeg IR toe als kolom
-IREGVwide22_23 <- IREGVwide22_23 %>%
-  mutate(IR = ((Ca*2)/40.078) / (((Ca*2)/40.078) + (Cl/35.453)), name_ref = codeplas)
-
-## voeg samen tot 1 dataset
-IREGVwide <- rbind(IREGVwide24, IREGVwide22_23)
+IREGVwide24 <- IREGVwide24 %>% 
+  left_join(data_locaties[,c(2,7)])
 ```
 
 ## plot IR_EGV diagram
 ```{r}
+# per watertype
 p1 <- ggplot(ref_punten, aes(x = ec25_ref, y = ir_ref, label = name_ref)) +
   geom_point(size = 2) + 
   scale_x_log10() + 
@@ -1253,17 +1411,26 @@ p1 <- ggplot(ref_punten, aes(x = ec25_ref, y = ir_ref, label = name_ref)) +
   ylab("IR (%)") + 
   scale_y_continuous(breaks = seq(0,1, by = 0.1)) + 
   ggtitle("IR-EGV diagram Turnhout\n") + 
-  geom_text(hjust = - 0.5, vjust = - 0.5)
-# voeg locaties Kalmthout toe
-p1 + geom_point(data = IREGVwide, mapping = aes(x = EGV25_veld, y = IR, colour = meetreeks))
+  geom_text(hjust = - 0.3, vjust = - 0.3)
+p1 + geom_point(data = IREGVwide24, mapping = aes(x = EGV25_veld, y = IR, colour = watertype))
+
+p1 + geom_point(data = IREGVwide24, mapping = aes(x = EGV25_veld, y = IR), colour = "orange2")
 ```
 
 ### plot Ionenratio
 ```{r}
-IREGVwide %>%
-    ggplot(aes(x = IR, y = codeplas, colour = meetreeks)) +
+IREGVwide24 %>%
+    ggplot(aes(x = IR, y = codeplas, colour = watertype)) +
     geom_point() +
     labs(title = "Ionenratio (%)\n") +
     ylab("Locatie") + xlab("ratio (%)")
+
+IREGVwide24 %>%
+  ggplot(aes(x = IR, y = codeplas, colour = watertype)) +
+  geom_point(size = 2) +
+  ylab("Locatie") + 
+  xlab("Ionenratio (%)") +
+  facet_grid(watertype ~ ., scales = "free", space = "free_y") +
+  scale_x_continuous(breaks = pretty_breaks(n = 10))
 ```
 
