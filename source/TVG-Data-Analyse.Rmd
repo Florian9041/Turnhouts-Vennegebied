@@ -137,60 +137,6 @@ for (Variabele in Componenten) {
 }
 ```
 
-# functie voor tijdsreeksen
-```{r}
-generate_plot <- function(codeplas_value, aqua_component, watertype_thresholds, y_label = NULL) {
-  filtered_data <- data_TVG %>%
-    filter(AquaComponent == aqua_component & meetreeks == "2022-2024" & codeplas == codeplas_value)
-  
-  n_results <- nrow(filtered_data)
-  interval <- if(n_results > 16) "2 months" else "1 month"
-  
-  watertype <- unique(filtered_data$watertype)
-  threshold <- watertype_thresholds[[watertype]] %||% NA # Use NA if not found
-  
-  # If y_label is not provided, use "ResultCalc" as default
-  y_axis_label <- if(is.null(y_label)) "ResultCalc" else y_label
-  
-  plot <- filtered_data %>%
-    ggplot(aes(x = FieldSamplingDate, y = ResultCalc)) +
-    scale_x_date(date_breaks = interval, date_labels = "%m/%y") +
-    scale_y_continuous(breaks = pretty_breaks(n = 10)) +
-    geom_line(linewidth = 1, color = "orange") +
-    geom_point(color = "orange") +
-    geom_hline(yintercept = threshold, linetype = "dashed", color = "black", size = 1) +
-    labs(title = paste(codeplas_value, "_", aqua_component),
-         x = "Datum staalname",
-         y = y_axis_label)
-  
-  return(plot)
-}
-
-generate_multiple_plots <- function(codeplas_values, aqua_component, watertype_thresholds, y_label = NULL) {
-  plots <- map(codeplas_values, ~generate_plot(.x, aqua_component, watertype_thresholds, y_label))
-  names(plots) <- codeplas_values
-  return(plots)
-}
-
-
-```
-
-# tijdreeksen opstellen voor variabelen
-```{r}
-# Chloride
-grenswaarden_Cl <- list(
-  "Aw-om" = 140, 
-  "Cb" = 70, 
-  "Czb" = 50, 
-  "Zm" = 20, 
-  "Zs" = 20
-)
-
-plots_Cl <- generate_multiple_plots(reeks_2022_2024, "Cl", grenswaarden_Cl, "Chloride (mg/l)")
-walk2(plots_Cl, names(plots_Cl),
-      ~ggsave(filename = paste0("./exports/Chloride/plot_", .y, "_", "Cl", ".png"), plot = .x, width = 10, height = 6))
-
-```
 
 
 # functies
