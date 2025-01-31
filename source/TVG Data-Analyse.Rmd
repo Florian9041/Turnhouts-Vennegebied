@@ -30,12 +30,39 @@ library(tidyr)
 library(tibble)
 library(scales)
 library(purrr)
+library(lubridate)
 ```
 
 # data inlezen
 ```{r}
 data_locaties <- read.csv(file = "./data/TVG_gemeten_plassen.csv", sep = ";")
-data_TVG <- read.csv(file = "./data/FactResultAqua_bewerkt_2024-12-06.csv", sep = ";")
+data_TVG <- read.csv(file = "./data/FactResultAqua_bewerkt_2025-01-03.csv", sep = ";")
+# Assuming 'date' is the column name for your dates
+data_TVG$FieldSamplingDate <- as.Date(data_TVG$FieldSamplingDate)
+
+data_TVG_filtered <- data_TVG %>%
+  arrange(FieldSamplingDate) %>%
+  mutate(
+    is_post_2023 = year(FieldSamplingDate) >= 2023,
+    prev_date = lag(FieldSamplingDate),
+    next_date = lead(FieldSamplingDate),
+    prev_diff = interval(prev_date, FieldSamplingDate) %/% months(1),
+    next_diff = interval(FieldSamplingDate, next_date) %/% months(1)
+  ) %>%
+  filter(
+    !is_post_2023 |
+    (is_post_2023 & 
+     ((is.na(prev_diff) | prev_diff <= 4) &
+      (is.na(next_diff) | next_diff <= 4)))
+  ) %>%
+  select(-is_post_2023, -prev_date, -next_date, -prev_diff, -next_diff)
+
+
+
+
+
+
+
 locaties <- data_locaties$codeplas
 # gebruik locaties van TVG
 data_TVG <- data_TVG %>%
@@ -171,7 +198,6 @@ generate_multiple_plots <- function(codeplas_values, aqua_component, watertype_t
   return(plots)
 }
 
-
 ```
 
 # tijdreeksen opstellen voor variabelen
@@ -189,6 +215,59 @@ plots_Cl <- generate_multiple_plots(reeks_2022_2024, "Cl", grenswaarden_Cl, "Chl
 walk2(plots_Cl, names(plots_Cl),
       ~ggsave(filename = paste0("./exports/Chloride/", .y, "_", "Cl", ".png"), plot = .x, width = 10, height = 6))
 
+
+# Elektrische geleidbaarheid
+grenswaarden_EGV <- list(
+  "Aw-om" = 750, 
+  "Cb" = 350, 
+  "Czb" = 250, 
+  "Zm" = 100, 
+  "Zs" = 100
+)
+
+plots_EGV <- generate_multiple_plots(reeks_2022_2024, "EGV25_veld", grenswaarden_EGV, "Elektrische geleidbaarheid (µS/cm)")
+walk2(plots_EGV, names(plots_EGV),
+      ~ggsave(filename = paste0("./exports/Elektrische_geleidbaarheid/", .y, "_", "EGV", ".png"), plot = .x, width = 10, height = 6))
+
+
+# Temperatuur
+grenswaarden_Temp <- list(
+  "Aw-om" = 25, 
+  "Cb" = 25, 
+  "Czb" = 25, 
+  "Zm" = 25, 
+  "Zs" = 25
+)
+
+plots_Temp <- generate_multiple_plots(reeks_2022_2024, "T_veld", grenswaarden_Temp, "Temperatuur (°C)")
+walk2(plots_Temp, names(plots_Temp),
+      ~ggsave(filename = paste0("./exports/Temperatuur/", .y, "_", "Temp", ".png"), plot = .x, width = 10, height = 6))
+
+# Zuurstofverzadiging
+grenswaarden_O2verz <- list(
+  "Aw-om" = 120, 
+  "Cb" = 120, 
+  "Czb" = 120, 
+  "Zm" = 120, 
+  "Zs" = 120
+)
+
+plots_O2v <- generate_multiple_plots(reeks_2022_2024, "O2verz", grenswaarden_O2verz, "Zuurstofverzadiging (%)")
+walk2(plots_O2v, names(plots_O2v),
+      ~ggsave(filename = paste0("./exports/Zuurstofverzadiging/", .y, "_", "O2verz", ".png"), plot = .x, width = 10, height = 6))
+
+# Zuurstofconcentratie
+grenswaarden_O2conc <- list(
+  "Aw-om" = 6, 
+  "Cb" = 6, 
+  "Czb" = 6, 
+  "Zm" = 6, 
+  "Zs" = 6
+)
+
+plots_O2c <- generate_multiple_plots(reeks_2022_2024, "O2_veld", grenswaarden_O2conc, "Zuurstofconcentratie (mg/l)")
+walk2(plots_O2c, names(plots_O2c),
+      ~ggsave(filename = paste0("./exports/Zuurstofconcentratie/", .y, "_", "O2conc", ".png"), plot = .x, width = 10, height = 6))
 ```
 
 
