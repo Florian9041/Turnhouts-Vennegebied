@@ -144,7 +144,7 @@ generate_plot <- function(codeplas_value, aqua_component, watertype_thresholds, 
     filter(AquaComponent == aqua_component & meetreeks == "2022-2024" & codeplas == codeplas_value)
   
   n_results <- nrow(filtered_data)
-  interval <- if(n_results > 16) "2 months" else "1 month"
+  interval <- if(n_results > 12) "2 months" else "1 month"
   
   watertype <- unique(filtered_data$watertype)
   threshold <- watertype_thresholds[[watertype]] %||% NA # Use NA if not found
@@ -159,8 +159,7 @@ generate_plot <- function(codeplas_value, aqua_component, watertype_thresholds, 
     geom_line(linewidth = 1, color = "orange") +
     geom_point(color = "orange") +
     geom_hline(yintercept = threshold, linetype = "dashed", color = "black", size = 1) +
-    labs(title = paste(codeplas_value, "_", aqua_component),
-         x = "Datum staalname",
+    labs(x = "Datum staalname",
          y = y_axis_label)
   
   return(plot)
@@ -188,7 +187,7 @@ grenswaarden_Cl <- list(
 
 plots_Cl <- generate_multiple_plots(reeks_2022_2024, "Cl", grenswaarden_Cl, "Chloride (mg/l)")
 walk2(plots_Cl, names(plots_Cl),
-      ~ggsave(filename = paste0("./exports/Chloride/plot_", .y, "_", "Cl", ".png"), plot = .x, width = 10, height = 6))
+      ~ggsave(filename = paste0("./exports/Chloride/", .y, "_", "Cl", ".png"), plot = .x, width = 10, height = 6))
 
 ```
 
