@@ -268,6 +268,58 @@ grenswaarden_O2conc <- list(
 plots_O2c <- generate_multiple_plots(reeks_2022_2024, "O2_veld", grenswaarden_O2conc, "Zuurstofconcentratie (mg/l)")
 walk2(plots_O2c, names(plots_O2c),
       ~ggsave(filename = paste0("./exports/Zuurstofconcentratie/", .y, "_", "O2conc", ".png"), plot = .x, width = 10, height = 6))
+
+```
+
+# aparte code voor zuurtegraad (onder en bovengrenzen - 2 horizontale lijnen)
+```{r}
+generate_plot <- function(codeplas_value, aqua_component, watertype_thresholds, y_label = NULL) {
+  filtered_data <- data_TVG %>%
+    filter(AquaComponent == aqua_component & meetreeks == "2022-2024" & codeplas == codeplas_value)
+  
+  n_results <- nrow(filtered_data)
+  interval <- if(n_results > 12) "2 months" else "1 month"
+  
+  watertype <- unique(filtered_data$watertype)
+  threshold_min <- watertype_thresholds[[watertype]]$min %||% NA
+  threshold_max <- watertype_thresholds[[watertype]]$max %||% NA
+  
+  # If y_label is not provided, use "ResultCalc" as default
+  y_axis_label <- if(is.null(y_label)) "ResultCalc" else y_label
+  
+  plot <- filtered_data %>%
+    ggplot(aes(x = FieldSamplingDate, y = ResultCalc)) +
+    scale_x_date(date_breaks = interval, date_labels = "%m/%y") +
+    scale_y_continuous(breaks = pretty_breaks(n = 10)) +
+    geom_line(linewidth = 1, color = "orange") +
+    geom_point(color = "orange") +
+    geom_hline(yintercept = threshold_min, linetype = "dashed", color = "blue", size = 1) +
+    geom_hline(yintercept = threshold_max, linetype = "dashed", color = "red", size = 1) +
+    labs(x = "Datum staalname",
+         y = y_axis_label)
+  
+  return(plot)
+}
+
+generate_multiple_plots <- function(codeplas_values, aqua_component, watertype_thresholds, y_label = NULL) {
+  plots <- map(codeplas_values, ~generate_plot(.x, aqua_component, watertype_thresholds, y_label))
+  names(plots) <- codeplas_values
+  return(plots)
+}
+
+# pH thresholds
+grenswaarden_pH <- list(
+  "Aw-om" = list(min = 6.5, max = 8.5),
+  "Cb" = list(min = 6.5, max = 8.5),
+  "Czb" = list(min = 6.5, max = 8.5),
+  "Zm" = list(min = 5.5, max = 8.5),
+  "Zs" = list(min = 5.5, max = 8.5)
+)
+
+plots_pH <- generate_multiple_plots(reeks_2022_2024, "pH", grenswaarden_pH, "pH")
+walk2(plots_pH, names(plots_pH),
+      ~ggsave(filename = paste0("./exports/pH/", .y, "_", "pH", ".png"), plot = .x, width = 10, height = 6))
+
 ```
 
 
