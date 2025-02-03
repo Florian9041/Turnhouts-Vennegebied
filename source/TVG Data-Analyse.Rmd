@@ -140,6 +140,12 @@ data_TVG %>%
   geom_vline(data = vline_Cl, aes(xintercept = xintercept, colour = watertype), 
              linetype = "solid", size = 1)  # Customize the line style if needed
 
+vline_Alk <- data.frame(
+  watertype = c("Aw-om", "Cb", "Czb", "Zm", "Zs"),
+  xinterceptmin = c(0.1, NA, 50, 20, 0.03),
+  xinterceptmax = c(140, NA, 50, 20, 20)
+)
+
 # meetreeks <2020
 for (Variabele in Componenten) {
   data_figuur <- data_TVG %>%
@@ -195,7 +201,44 @@ generate_multiple_plots <- function(codeplas_values, aqua_component, watertype_t
 
 ```
 
-# code voor 2 variabelen te plotten (vb WD en SD)
+# functie voor tijdsreeksen zonder grenswaarde
+```{r}
+generate_plot_nohline <- function(codeplas_value, aqua_component, y_label = NULL) {
+  filtered_data <- data_TVG %>%
+    filter(AquaComponent == aqua_component & meetreeks == "2022-2024" & codeplas == codeplas_value)
+  
+  n_results <- nrow(filtered_data)
+  interval <- if(n_results > 12) "2 months" else "1 month"
+  
+  # If y_label is not provided, use "ResultCalc" as default
+  y_axis_label <- if(is.null(y_label)) "ResultCalc" else y_label
+  
+  plot <- filtered_data %>%
+    ggplot(aes(x = FieldSamplingDate, y = ResultCalc)) +
+    scale_x_date(date_breaks = interval, date_labels = "%m/%y") +
+    scale_y_continuous(breaks = pretty_breaks(n = 10)) +
+    geom_line(linewidth = 1, color = "orange") +
+    geom_point(color = "orange") +
+    labs(x = "Datum staalname",
+         y = y_axis_label) +
+  theme(
+    axis.title = element_text(size = 16),
+    axis.text = element_text(size = 14)
+  )
+    
+  
+  return(plot)
+}
+
+generate_multiple_plots_nohline <- function(codeplas_values, aqua_component, y_label = NULL) {
+  plots <- map(codeplas_values, ~generate_plot_nohline(.x, aqua_component, y_label))
+  names(plots) <- codeplas_values
+  return(plots)
+}
+
+```
+
+# code voor 2 variabelen te plotten (vb WD en SD, ZS105 en ZS550)
 ```{r}
 generate_plot_2 <- function(codeplas_value, aqua_component1, aqua_component2, watertype_thresholds, y_label = NULL) {
   filtered_data1 <- data_TVG %>%
@@ -226,7 +269,9 @@ generate_plot_2 <- function(codeplas_value, aqua_component1, aqua_component2, wa
          color = "AquaComponent") +
     theme(
       axis.title = element_text(size = 16),
-      axis.text = element_text(size = 14)
+      axis.text = element_text(size = 14),
+      legend.title = element_text(size = 16),
+      legend.text = element_text(size = 14)
     )
   
   return(plot)
@@ -238,7 +283,45 @@ generate_multiple_plots_2 <- function(codeplas_values, aqua_component1, aqua_com
   return(plots)
 }
 
+# zonder normgrenzen
+generate_plot_2_nohline <- function(codeplas_value, aqua_component1, aqua_component2, y_label = NULL) {
+  filtered_data1 <- data_TVG %>%
+    filter(AquaComponent == aqua_component1 & meetreeks == "2022-2024" & codeplas == codeplas_value)
+  
+  filtered_data2 <- data_TVG %>%
+    filter(AquaComponent == aqua_component2 & meetreeks == "2022-2024" & codeplas == codeplas_value)
+  
+  n_results <- max(nrow(filtered_data1), nrow(filtered_data2))
+  interval <- if(n_results > 12) "2 months" else "1 month"
+  
+  # If y_label is not provided, use "ResultCalc" as default
+  y_axis_label <- if(is.null(y_label)) "ResultCalc" else y_label
+  
+  plot <- ggplot() +
+    geom_line(data = filtered_data1, aes(x = FieldSamplingDate, y = ResultCalc, color = aqua_component1), linewidth = 1) +
+    geom_point(data = filtered_data1, aes(x = FieldSamplingDate, y = ResultCalc, color = aqua_component1)) +
+    geom_line(data = filtered_data2, aes(x = FieldSamplingDate, y = ResultCalc, color = aqua_component2), linewidth = 1) +
+    geom_point(data = filtered_data2, aes(x = FieldSamplingDate, y = ResultCalc, color = aqua_component2)) +
+    scale_x_date(date_breaks = interval, date_labels = "%m/%y") +
+    scale_y_continuous(breaks = pretty_breaks(n = 10)) +
+    labs(x = "Datum staalname",
+         y = y_axis_label,
+         color = "AquaComponent") +
+    theme(
+      axis.title = element_text(size = 16),
+      axis.text = element_text(size = 14),
+      legend.title = element_text(size = 16),
+      legend.text = element_text(size = 14)
+    )
+  
+  return(plot)
+}
 
+generate_multiple_plots_2_nohline <- function(codeplas_values, aqua_component1, aqua_component2, y_label = NULL) {
+  plots <- map(codeplas_values, ~generate_plot_2_nohline(.x, aqua_component1, aqua_component2, y_label))
+  names(plots) <- codeplas_values
+  return(plots)
+}
 ```
 
 
@@ -364,6 +447,22 @@ plots_SO4 <- generate_multiple_plots(reeks_2022_2024, "SO4", grenswaarden_SO4, "
 walk2(plots_SO4, names(plots_SO4),
       ~ggsave(filename = paste0("./exports/SO4/", .y, "_", "SO4", ".png"), plot = .x, width = 10, height = 6))
 
+# Absorptie 440 (geen norm)
+plots_abs <- generate_multiple_plots_nohline(reeks_2022_2024, "absorptie_440", "Absorptie (ABS)")
+walk2(plots_abs, names(plots_abs),
+      ~ggsave(filename = paste0("./exports/absorptie/", .y, "_", "abs", ".png"), plot = .x, width = 10, height = 6))
+
+# Alkaliniteit
+plots_alk <- generate_multiple_plots_nohline(reeks_2022_2024, "alkaliniteit", "Alkaliniteit (meq/l)")
+walk2(plots_alk, names(plots_alk),
+      ~ggsave(filename = paste0("./exports/alkaliniteit/", .y, "_", "abs", ".png"), plot = .x, width = 10, height = 6))
+
+# Fosfaat - fosfor PO4_P
+plots_PO4_P <- generate_multiple_plots_nohline(reeks_2022_2024, "PO4_P", "PO4-P (mg P/l)")
+walk2(plots_PO4_P, names(plots_PO4_P),
+      ~ggsave(filename = paste0("./exports/PO4_P/", .y, "_", "PO4_P", ".png"), plot = .x, width = 10, height = 6))
+
+
 ```
 
 # aparte code voor zuurtegraad (onder en bovengrenzen - 2 horizontale lijnen)
@@ -431,11 +530,11 @@ grenswaarden_pH <- list(
 plots_pH <- generate_multiple_plots_pH(reeks_2022_2024, "pH_veld", grenswaarden_pH, "pH")
 walk2(plots_pH, names(plots_pH),
       ~ggsave(filename = paste0("./exports/pH/", .y, "_", "pH", ".png"), plot = .x, width = 10, height = 6))
-
 ```
 
 # aparte code voor WD en SD (2 variabelen in 1 plot)
 ```{r}
+# waterdiepte en secchi-diepte
 grenswaarden_SD <- list(
   "Aw-om" = 1.8, 
   "Cb" = 0.9, 
@@ -447,6 +546,23 @@ grenswaarden_SD <- list(
 plots_SD_WD <- generate_multiple_plots_2(reeks_2022_2024, "SD_veld", "WD_veld", grenswaarden_SD, "Meetwaarde (m)")
 walk2(plots_SD_WD, names(plots_SD_WD),
       ~ggsave(filename = paste0("./exports/SD_WD/", .y, "_", "SD_WD", ".png"), plot = .x, width = 10, height = 6))
+
+grenswaarden_ZS105 <- list(
+  "Aw-om" = 2.5, 
+  "Cb" = 2.5, 
+  "Czb" = 4, 
+  "Zm" = 4, 
+  "Zs" = 4
+)
+
+plots_ZS <- generate_multiple_plots_2(reeks_2022_2024, "ZS_105", "ZS_550", grenswaarden_ZS105, "Zwevende stof (mg/l)")
+walk2(plots_ZS, names(plots_ZS),
+      ~ggsave(filename = paste0("./exports/ZS_105_550/", .y, "_", "ZS", ".png"), plot = .x, width = 10, height = 6))
+
+# zwevende stof 105 en 550
+plots_ZS105 <- generate_multiple_plots_2_nohline(reeks_2022_2024, "ZS_105", "ZS_550", "Zwevende stof (mg/l)")
+walk2(plots_ZS105, names(plots_ZS105),
+      ~ggsave(filename = paste0("./exports/ZS_105_550_geenMKN/", .y, "_", "ZS_nohline", ".png"), plot = .x, width = 10, height = 6))
 ```
 
 
