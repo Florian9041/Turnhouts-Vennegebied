@@ -40,29 +40,6 @@ data_TVG <- read.csv(file = "./data/FactResultAqua_bewerkt_2025-01-03.csv", sep 
 # Assuming 'date' is the column name for your dates
 data_TVG$FieldSamplingDate <- as.Date(data_TVG$FieldSamplingDate)
 
-data_TVG_filtered <- data_TVG %>%
-  arrange(FieldSamplingDate) %>%
-  mutate(
-    is_post_2023 = year(FieldSamplingDate) >= 2023,
-    prev_date = lag(FieldSamplingDate),
-    next_date = lead(FieldSamplingDate),
-    prev_diff = interval(prev_date, FieldSamplingDate) %/% months(1),
-    next_diff = interval(FieldSamplingDate, next_date) %/% months(1)
-  ) %>%
-  filter(
-    !is_post_2023 |
-    (is_post_2023 & 
-     ((is.na(prev_diff) | prev_diff <= 4) &
-      (is.na(next_diff) | next_diff <= 4)))
-  ) %>%
-  select(-is_post_2023, -prev_date, -next_date, -prev_diff, -next_diff)
-
-
-
-
-
-
-
 locaties <- data_locaties$codeplas
 # gebruik locaties van TVG
 data_TVG <- data_TVG %>%
@@ -79,6 +56,19 @@ data_TVG$Unit[data_TVG$Unit == "M"] <- "m"
 #  select(codeplas, HabtypeVel) %>%
 #  unique() %>%
 #  write.csv2(file = "./exports/habitattype.csv")
+
+
+# verwijder data met geïsoleerde metingen in 2024 (1 / 2 metingen in 2024)
+data_TVG <- data_TVG %>%
+  mutate(FieldSamplingDate = as.Date(FieldSamplingDate)) %>%
+  group_by(codeplas) %>%
+  # Identify codeplas with 1 or 2 distinct dates in 2024
+  mutate(distinct_dates_2024 = n_distinct(FieldSamplingDate[year(FieldSamplingDate) == 2024])) %>%
+  ungroup() %>%
+  # Remove rows where the date is in 2024 and the codeplas has 1 or 2 distinct dates
+  filter(!(year(FieldSamplingDate) == 2024 & distinct_dates_2024 >= 1 & distinct_dates_2024 <= 2)) %>%
+  select(-distinct_dates_2024)  # Remove the helper column
+
 
 data_TVG <- data_TVG %>%
   left_join(data_locaties[,c(2,7)], by = "codeplas")
@@ -187,7 +177,12 @@ generate_plot <- function(codeplas_value, aqua_component, watertype_thresholds, 
     geom_point(color = "orange") +
     geom_hline(yintercept = threshold, linetype = "dashed", color = "black", size = 1) +
     labs(x = "Datum staalname",
-         y = y_axis_label)
+         y = y_axis_label) +
+  theme(
+    axis.title = element_text(size = 16),
+    axis.text = element_text(size = 14)
+  )
+    
   
   return(plot)
 }
@@ -199,6 +194,53 @@ generate_multiple_plots <- function(codeplas_values, aqua_component, watertype_t
 }
 
 ```
+
+# code voor 2 variabelen te plotten (vb WD en SD)
+```{r}
+generate_plot_2 <- function(codeplas_value, aqua_component1, aqua_component2, watertype_thresholds, y_label = NULL) {
+  filtered_data1 <- data_TVG %>%
+    filter(AquaComponent == aqua_component1 & meetreeks == "2022-2024" & codeplas == codeplas_value)
+  
+  filtered_data2 <- data_TVG %>%
+    filter(AquaComponent == aqua_component2 & meetreeks == "2022-2024" & codeplas == codeplas_value)
+  
+  n_results <- max(nrow(filtered_data1), nrow(filtered_data2))
+  interval <- if(n_results > 12) "2 months" else "1 month"
+  
+  watertype <- unique(filtered_data1$watertype)
+  threshold <- watertype_thresholds[[watertype]] %||% NA # Use NA if not found
+  
+  # If y_label is not provided, use "ResultCalc" as default
+  y_axis_label <- if(is.null(y_label)) "ResultCalc" else y_label
+  
+  plot <- ggplot() +
+    geom_line(data = filtered_data1, aes(x = FieldSamplingDate, y = ResultCalc, color = aqua_component1), linewidth = 1) +
+    geom_point(data = filtered_data1, aes(x = FieldSamplingDate, y = ResultCalc, color = aqua_component1)) +
+    geom_line(data = filtered_data2, aes(x = FieldSamplingDate, y = ResultCalc, color = aqua_component2), linewidth = 1) +
+    geom_point(data = filtered_data2, aes(x = FieldSamplingDate, y = ResultCalc, color = aqua_component2)) +
+    scale_x_date(date_breaks = interval, date_labels = "%m/%y") +
+    scale_y_continuous(breaks = pretty_breaks(n = 10)) +
+    geom_hline(yintercept = threshold, linetype = "dashed", color = "black", size = 1) +
+    labs(x = "Datum staalname",
+         y = y_axis_label,
+         color = "AquaComponent") +
+    theme(
+      axis.title = element_text(size = 16),
+      axis.text = element_text(size = 14)
+    )
+  
+  return(plot)
+}
+
+generate_multiple_plots_2 <- function(codeplas_values, aqua_component1, aqua_component2, watertype_thresholds, y_label = NULL) {
+  plots <- map(codeplas_values, ~generate_plot_2(.x, aqua_component1, aqua_component2, watertype_thresholds, y_label))
+  names(plots) <- codeplas_values
+  return(plots)
+}
+
+
+```
+
 
 # tijdreeksen opstellen voor variabelen
 ```{r}
@@ -269,11 +311,64 @@ plots_O2c <- generate_multiple_plots(reeks_2022_2024, "O2_veld", grenswaarden_O2
 walk2(plots_O2c, names(plots_O2c),
       ~ggsave(filename = paste0("./exports/Zuurstofconcentratie/", .y, "_", "O2conc", ".png"), plot = .x, width = 10, height = 6))
 
+
+# Chlorofyl-a
+grenswaarden_chla <- list(
+  "Aw-om" = 10, 
+  "Cb" = 10, 
+  "Czb" = 10, 
+  "Zm" = 10, 
+  "Zs" = 10
+)
+
+plots_chla <- generate_multiple_plots(reeks_2022_2024, "chl_a", grenswaarden_chla, "Chlorofyl_a (µg/l)")
+walk2(plots_chla, names(plots_chla),
+      ~ggsave(filename = paste0("./exports/Chlorofyl_a/", .y, "_", "chl_a", ".png"), plot = .x, width = 10, height = 6))
+
+# TN - Totale stikstof
+grenswaarden_TN <- list(
+  "Aw-om" = 1, 
+  "Cb" = 1.3, 
+  "Czb" = 1.3, 
+  "Zm" = 1.3, 
+  "Zs" = 1.3
+)
+
+plots_TN <- generate_multiple_plots(reeks_2022_2024, "TN", grenswaarden_TN, "Totale stikstof (mg N/l)")
+walk2(plots_TN, names(plots_TN),
+      ~ggsave(filename = paste0("./exports/TN/", .y, "_", "TN", ".png"), plot = .x, width = 10, height = 6))
+
+# TP - Totale fosfor
+grenswaarden_TP <- list(
+  "Aw-om" = 0.04, 
+  "Cb" = 0.04, 
+  "Czb" = 0.03, 
+  "Zm" = 0.03, 
+  "Zs" = 0.03
+)
+
+plots_TP <- generate_multiple_plots(reeks_2022_2024, "TP", grenswaarden_TP, "Totale fosfor (mg P/l)")
+walk2(plots_TP, names(plots_TP),
+      ~ggsave(filename = paste0("./exports/TP/", .y, "_", "TP", ".png"), plot = .x, width = 10, height = 6))
+
+# SO4 - Sulfaat
+grenswaarden_SO4 <- list(
+  "Aw-om" = 100, 
+  "Cb" = 50, 
+  "Czb" = 40, 
+  "Zm" = 15, 
+  "Zs" = 15
+)
+
+plots_SO4 <- generate_multiple_plots(reeks_2022_2024, "SO4", grenswaarden_SO4, "Sulfaat (mg/l)")
+walk2(plots_SO4, names(plots_SO4),
+      ~ggsave(filename = paste0("./exports/SO4/", .y, "_", "SO4", ".png"), plot = .x, width = 10, height = 6))
+
 ```
 
 # aparte code voor zuurtegraad (onder en bovengrenzen - 2 horizontale lijnen)
 ```{r}
-generate_plot <- function(codeplas_value, aqua_component, watertype_thresholds, y_label = NULL) {
+generate_plot_pH <- function(codeplas_value, aqua_component, watertype_thresholds, y_label = NULL) {
   filtered_data <- data_TVG %>%
     filter(AquaComponent == aqua_component & meetreeks == "2022-2024" & codeplas == codeplas_value)
   
@@ -281,8 +376,15 @@ generate_plot <- function(codeplas_value, aqua_component, watertype_thresholds, 
   interval <- if(n_results > 12) "2 months" else "1 month"
   
   watertype <- unique(filtered_data$watertype)
-  threshold_min <- watertype_thresholds[[watertype]]$min %||% NA
-  threshold_max <- watertype_thresholds[[watertype]]$max %||% NA
+  
+  # Check if watertype exists in the thresholds and get min/max values
+  if (watertype %in% names(watertype_thresholds)) {
+    threshold_min <- watertype_thresholds[[watertype]]$min
+    threshold_max <- watertype_thresholds[[watertype]]$max
+  } else {
+    threshold_min <- NA
+    threshold_max <- NA
+  }
   
   # If y_label is not provided, use "ResultCalc" as default
   y_axis_label <- if(is.null(y_label)) "ResultCalc" else y_label
@@ -293,16 +395,26 @@ generate_plot <- function(codeplas_value, aqua_component, watertype_thresholds, 
     scale_y_continuous(breaks = pretty_breaks(n = 10)) +
     geom_line(linewidth = 1, color = "orange") +
     geom_point(color = "orange") +
-    geom_hline(yintercept = threshold_min, linetype = "dashed", color = "blue", size = 1) +
-    geom_hline(yintercept = threshold_max, linetype = "dashed", color = "red", size = 1) +
     labs(x = "Datum staalname",
-         y = y_axis_label)
+         y = y_axis_label) +
+  theme(
+    axis.title = element_text(size = 16),
+    axis.text = element_text(size = 14)
+  )
+  
+  # Add threshold lines only if they are not NA
+  if (!is.na(threshold_min)) {
+    plot <- plot + geom_hline(yintercept = threshold_min, linetype = "dashed", color = "black", size = 1)
+  }
+  if (!is.na(threshold_max)) {
+    plot <- plot + geom_hline(yintercept = threshold_max, linetype = "dashed", color = "black", size = 1)
+  }
   
   return(plot)
 }
 
-generate_multiple_plots <- function(codeplas_values, aqua_component, watertype_thresholds, y_label = NULL) {
-  plots <- map(codeplas_values, ~generate_plot(.x, aqua_component, watertype_thresholds, y_label))
+generate_multiple_plots_pH <- function(codeplas_values, aqua_component, watertype_thresholds, y_label = NULL) {
+  plots <- map(codeplas_values, ~generate_plot_pH(.x, aqua_component, watertype_thresholds, y_label))
   names(plots) <- codeplas_values
   return(plots)
 }
@@ -316,10 +428,25 @@ grenswaarden_pH <- list(
   "Zs" = list(min = 5.5, max = 8.5)
 )
 
-plots_pH <- generate_multiple_plots(reeks_2022_2024, "pH", grenswaarden_pH, "pH")
+plots_pH <- generate_multiple_plots_pH(reeks_2022_2024, "pH_veld", grenswaarden_pH, "pH")
 walk2(plots_pH, names(plots_pH),
       ~ggsave(filename = paste0("./exports/pH/", .y, "_", "pH", ".png"), plot = .x, width = 10, height = 6))
 
+```
+
+# aparte code voor WD en SD (2 variabelen in 1 plot)
+```{r}
+grenswaarden_SD <- list(
+  "Aw-om" = 1.8, 
+  "Cb" = 0.9, 
+  "Czb" = 0.9, 
+  "Zm" = 0.9, 
+  "Zs" = 0.9
+)
+
+plots_SD_WD <- generate_multiple_plots_2(reeks_2022_2024, "SD_veld", "WD_veld", grenswaarden_SD, "Meetwaarde (m)")
+walk2(plots_SD_WD, names(plots_SD_WD),
+      ~ggsave(filename = paste0("./exports/SD_WD/", .y, "_", "SD_WD", ".png"), plot = .x, width = 10, height = 6))
 ```
 
 
