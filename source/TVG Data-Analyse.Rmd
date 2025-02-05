@@ -611,6 +611,71 @@ generate_multiple_plots_2_nohline <- function(codeplas_values, aqua_component1, 
 }
 ```
 
+# functie tijdsreeks met 2 variabelen op 1 figuur
+```{r}
+generate_plot_two_components <- function(codeplas_value, aqua_component1, aqua_component2, y_label1 = NULL, y_label2 = NULL) {
+  filtered_data1 <- data_TVG %>%
+    filter(AquaComponent == aqua_component1 & meetreeks == "2022-2024" & codeplas == codeplas_value)
+  
+  filtered_data2 <- data_TVG %>%
+    filter(AquaComponent == aqua_component2 & meetreeks == "2022-2024" & codeplas == codeplas_value)
+  
+  n_results <- max(nrow(filtered_data1), nrow(filtered_data2))
+  interval <- if(n_results > 12) "2 months" else "1 month"
+  
+  y_axis_label1 <- if(is.null(y_label1)) paste("ResultCalc", aqua_component1) else y_label1
+  y_axis_label2 <- if(is.null(y_label2)) paste("ResultCalc", aqua_component2) else y_label2
+  
+  # Calculate the scaling factor
+  scale_factor <- max(filtered_data2$ResultCalc, na.rm = TRUE) / max(filtered_data1$ResultCalc, na.rm = TRUE)
+  
+  plot <- ggplot() +
+    geom_line(data = filtered_data1, aes(x = FieldSamplingDate, y = ResultCalc, color = aqua_component1), linewidth = 1) +
+    geom_point(data = filtered_data1, aes(x = FieldSamplingDate, y = ResultCalc, color = aqua_component1)) +
+    geom_line(data = filtered_data2, aes(x = FieldSamplingDate, y = ResultCalc / scale_factor, color = aqua_component2), linewidth = 1) +
+    geom_point(data = filtered_data2, aes(x = FieldSamplingDate, y = ResultCalc / scale_factor, color = aqua_component2)) +
+    scale_x_date(date_breaks = interval, date_labels = "%m/%y") +
+    scale_y_continuous(name = y_axis_label1, 
+                       sec.axis = sec_axis(~. * scale_factor, name = y_axis_label2)) +
+    scale_color_manual(values = c("orange", "blue4")) +
+    labs(x = "Datum staalname",
+         color = "AquaComponent") +
+    theme(
+      legend.position = "none",
+      axis.title = element_text(size = 16),
+      axis.text = element_text(size = 14),
+      axis.title.y.left = element_text(color = "orange"),
+      axis.text.y.left = element_text(color = "orange"),
+      axis.title.y.right = element_text(color = "blue4"),
+      axis.text.y.right = element_text(color = "blue4")
+    )
+  
+  return(plot)
+}
+
+generate_multiple_plots_two_components <- function(codeplas_values, aqua_component1, aqua_component2, y_label1 = NULL, y_label2 = NULL) {
+  plots <- map(codeplas_values, ~generate_plot_two_components(.x, aqua_component1, aqua_component2, y_label1, y_label2))
+  names(plots) <- codeplas_values
+  return(plots)
+}
+
+
+```
+
+# tijdreeksen 2 variabelen
+```{r}
+# Zuurtegraad en absorptie
+plots_pH_abs <- generate_multiple_plots_two_components(reeks_2022_2024, "pH_veld", "absorptie_440", "Zuurtegraad - pH", "Absorptie (440nm ABS)")
+walk2(plots_pH_abs, names(plots_pH_abs),
+      ~ggsave(filename = paste0("./exports/pH_abs/", .y, "_", "pH_abs", ".png"), plot = .x, width = 10, height = 6))
+
+# chlorofyl_a en absorptie
+plots_chla_abs <- generate_multiple_plots_two_components(reeks_2022_2024, "chl_a", "absorptie_440", "Chlorofyl-a (µg/l)", "Absorptie (440nm ABS)")
+walk2(plots_chla_abs, names(plots_chla_abs),
+      ~ggsave(filename = paste0("./exports/chla_abs/", .y, "_", "chla_abs", ".png"), plot = .x, width = 10, height = 6))
+
+```
+
 
 # tijdreeksen opstellen voor variabelen
 ```{r}
