@@ -1449,6 +1449,50 @@ walk2(plots_N_anorg_log, names(plots_N_anorg_log),
       ~ggsave(filename = paste0("./exports/N_anorg_log/", .y, "_", "N_anorg_log", ".png"), plot = .x, width = 10, height = 6))
 ```
 
+## aparte code N_organisch (TN - Nanorg)
+```{r}
+generate_plot_Norg <- function(codeplas_value, aqua_components, y_label = NULL) {
+  filtered_data <- data_met_N_anorg %>%
+    filter(AquaComponent %in% aqua_components & meetreeks == "2022-2024" & codeplas == codeplas_value) %>%
+    mutate(AquaComponent = factor(AquaComponent, levels = c("TN", "N_anorg")))  # Set order
+  
+  n_results <- nrow(filtered_data)
+  interval <- if(n_results > 12) "2 months" else "1 month"
+  
+  y_axis_label <- if(is.null(y_label)) "ResultCalc" else y_label
+  
+  plot <- filtered_data %>%
+    ggplot(aes(x = FieldSamplingDate, y = ResultCalc, fill = AquaComponent)) +
+    geom_area(position = "identity", alpha = 0.6) +
+    geom_line(aes(color = AquaComponent), size = 1) +  # Add lines
+    scale_x_date(date_breaks = interval, date_labels = "%m/%y") +
+    scale_y_continuous(breaks = pretty_breaks(n = 10)) +
+    scale_fill_manual(values = c("TN" = "#66C2A5", "N_anorg" = "#FC8D62")) +  # Custom colors
+    scale_color_manual(values = c("TN" = "#66C2A5", "N_anorg" = "#FC8D62")) +  # Match line colors
+    labs(x = "Datum staalname", y = y_axis_label) +
+    theme(
+      axis.title = element_text(size = 16),
+      axis.text = element_text(size = 14),
+      legend.position = "bottom",
+      legend.title = element_blank()
+    )
+  
+  return(plot)
+}
+
+generate_multiple_plots_Norg <- function(codeplas_values, aqua_components, y_label = NULL) {
+  plots <- map(codeplas_values, ~generate_plot_Norg(.x, aqua_components, y_label))
+  names(plots) <- codeplas_values
+  return(plots)
+}
+
+plots_N_org <- generate_multiple_plots_Norg(reeks_2022_2024, c("TN", "N_anorg"), "mg N/l")
+walk2(plots_N_org, names(plots_N_org),
+      ~ggsave(filename = paste0("./exports/N_org/", .y, "_", "N_org", ".png"), plot = .x, width = 10, height = 6))
+
+
+```
+
 
 # EXPORTS VOOR TOETSING MKN
 ## Zuurtegraad
