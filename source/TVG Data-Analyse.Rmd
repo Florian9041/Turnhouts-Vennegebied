@@ -117,7 +117,34 @@ reeks_2020 <- meetreeksen %>%
   filter(`<2022` == "ja") %>% pull(codeplas)
 ```
 
-# boxplots per variabele (basic loop)
+## Anorganische data berekenen
+```{r}
+# voeg anorganische stikstof toe als variabele in tabel (N_anorg = NH4_N + NO3_N + NO2_N)
+N_anorg <- data_TVG %>% group_by(codeplas, FieldSamplingDate) %>% 
+  filter(AquaComponent %in% c("NH4_N", "NO3_N", "NO2_N")) %>% 
+  summarise(N_anorg = sum(ResultCalc))
+N_anorg <- N_anorg %>% 
+  rename(ResultCalc = N_anorg)
+N_anorg$label <- "N_anorg (mg N/l)"
+N_anorg$AquaComponent <- "N_anorg"
+N_anorg$AquaUnit <- "mg N/l"
+N_anorg$Component <- "N_anorg"
+N_anorg <- N_anorg %>%
+  mutate(meetreeks = case_when(
+           FieldSamplingDate < as.Date("2020-01-01") ~ "<2020",TRUE ~ "2022-2024"), 
+         seizoen = case_when(as.numeric(
+           format(FieldSamplingDate, "%m")) %in% c(4:9) ~ "zomer",
+           TRUE ~ "winter"))
+data_met_N_anorg <- bind_rows(data_TVG, N_anorg)
+data_met_N_anorg <- data_met_N_anorg %>%
+  left_join(data_locaties[,c(2,7)], by = "codeplas")
+data_met_N_anorg <- data_met_N_anorg %>% 
+  rename(watertype = watertype.y)
+write.csv2(data_met_N_anorg, file = "./data/Data_Kalmthout_met_Nanorg.csv")
+```
+
+# BOXPLOTS
+## boxplots per variabele (basic loop)
 ```{r}
 Componenten <- c("absorptie_440", "chl_a", "ZS_105", "ZS_550", "TP", "TN", "Cl", "SO4", "T_veld", "pH_veld", "EGV25_veld", "O2_veld", "O2verz", "SD_veld", "WD_veld", "NH4_N", "NO2_N", "NO3_N", "PO4_P", "alkaliniteit")
 
@@ -148,12 +175,23 @@ for (Variabele in Componenten) {
 }
 ```
 
-# Boxplots functie
+## Boxplots functie
 ```{r}
 create_boxplot <- function(data_TVG, AquaComponent, vline, xlab) {
+  # Calculate median values for sorting
+  median_values <- data_TVG %>%
+    filter(AquaComponent == !!AquaComponent & meetreeks == "2022-2024") %>%
+    group_by(codeplas, watertype) %>%
+    summarise(median = median(ResultCalc, na.rm = TRUE), .groups = "drop") %>%
+    arrange(median)  # Sort in ascending order
+  
+  # Create a factor level for codeplas based on sorted median values
+  codeplas_order <- median_values$codeplas
+  
   # Create the main plot
   plot <- data_TVG %>%
     filter(AquaComponent == !!AquaComponent & meetreeks == "2022-2024") %>%
+    mutate(codeplas = factor(codeplas, levels = codeplas_order)) %>%  # Set factor levels
     ggplot(aes(x = ResultCalc, y = codeplas, colour = watertype)) +
     geom_boxplot() +
     facet_grid(watertype ~ ., scales = "free", space = "free_y") +
@@ -166,7 +204,54 @@ create_boxplot <- function(data_TVG, AquaComponent, vline, xlab) {
     filter(AquaComponent == !!AquaComponent & meetreeks == "2022-2024") %>%
     group_by(watertype, codeplas) %>%
     summarise(Locatie = first(Locatie), .groups = "drop") %>%
-    mutate(x_pos = Inf)  # Position labels at the right edge of the plot
+    mutate(codeplas = factor(codeplas, levels = codeplas_order),  # Set factor levels
+           x_pos = Inf)  # Position labels at the right edge of the plot
+
+  # Add labels to the plot
+  final_plot <- plot + 
+    geom_text(data = labels_data, 
+              aes(x = x_pos, y = codeplas, label = Locatie),
+              hjust = 1,  # Right-align the text
+              vjust = 0.5,  # Center-align vertically
+              size = 3.5,  # Adjust text size as needed
+              colour = "black") +  # Set label color
+    theme(
+      legend.position = "none",
+      axis.title.y = element_blank()
+    )
+
+  return(final_plot)
+}
+# voormaximum
+create_boxplot_max <- function(data_TVG, AquaComponent, vline, xlab) {
+  # Calculate median values for sorting
+  median_values <- data_TVG %>%
+    filter(AquaComponent == !!AquaComponent & meetreeks == "2022-2024") %>%
+    group_by(codeplas, watertype) %>%
+    summarise(max = max(ResultCalc, na.rm = TRUE), .groups = "drop") %>%
+    arrange(max)  # Sort in ascending order
+  
+  # Create a factor level for codeplas based on sorted median values
+  codeplas_order <- median_values$codeplas
+  
+  # Create the main plot
+  plot <- data_TVG %>%
+    filter(AquaComponent == !!AquaComponent & meetreeks == "2022-2024") %>%
+    mutate(codeplas = factor(codeplas, levels = codeplas_order)) %>%  # Set factor levels
+    ggplot(aes(x = ResultCalc, y = codeplas, colour = watertype)) +
+    geom_boxplot() +
+    facet_grid(watertype ~ ., scales = "free", space = "free_y") +
+    geom_vline(data = vline, aes(xintercept = xintercept, colour = watertype), 
+               linetype = "solid", size = 1) +
+    xlab(xlab)
+
+  # Create a dataset for labels
+  labels_data <- data_TVG %>%
+    filter(AquaComponent == !!AquaComponent & meetreeks == "2022-2024") %>%
+    group_by(watertype, codeplas) %>%
+    summarise(Locatie = first(Locatie), .groups = "drop") %>%
+    mutate(codeplas = factor(codeplas, levels = codeplas_order),  # Set factor levels
+           x_pos = Inf)  # Position labels at the right edge of the plot
 
   # Add labels to the plot
   final_plot <- plot + 
@@ -184,14 +269,71 @@ create_boxplot <- function(data_TVG, AquaComponent, vline, xlab) {
   return(final_plot)
 }
 
-```
-
-# Boxplots functie log
-```{r}
-create_boxplot_log <- function(data_TVG, AquaComponent, vline, xlab) {
+# voor p90
+create_boxplot_p90 <- function(data_TVG, AquaComponent, vline, xlab) {
+  # Calculate median values for sorting
+  median_values <- data_TVG %>%
+    filter(AquaComponent == !!AquaComponent & meetreeks == "2022-2024") %>%
+    group_by(codeplas, watertype) %>%
+    summarise(p90 = quantile(ResultCalc, probs = 0.9, na.rm = TRUE), .groups = "drop") %>%
+    arrange(p90)  # Sort in ascending order
+  
+  # Create a factor level for codeplas based on sorted median values
+  codeplas_order <- median_values$codeplas
+  
   # Create the main plot
   plot <- data_TVG %>%
     filter(AquaComponent == !!AquaComponent & meetreeks == "2022-2024") %>%
+    mutate(codeplas = factor(codeplas, levels = codeplas_order)) %>%  # Set factor levels
+    ggplot(aes(x = ResultCalc, y = codeplas, colour = watertype)) +
+    geom_boxplot() +
+    facet_grid(watertype ~ ., scales = "free", space = "free_y") +
+    geom_vline(data = vline, aes(xintercept = xintercept, colour = watertype), 
+               linetype = "solid", size = 1) +
+    xlab(xlab)
+
+  # Create a dataset for labels
+  labels_data <- data_TVG %>%
+    filter(AquaComponent == !!AquaComponent & meetreeks == "2022-2024") %>%
+    group_by(watertype, codeplas) %>%
+    summarise(Locatie = first(Locatie), .groups = "drop") %>%
+    mutate(codeplas = factor(codeplas, levels = codeplas_order),  # Set factor levels
+           x_pos = Inf)  # Position labels at the right edge of the plot
+
+  # Add labels to the plot
+  final_plot <- plot + 
+    geom_text(data = labels_data, 
+              aes(x = x_pos, y = codeplas, label = Locatie),
+              hjust = 1,  # Right-align the text
+              vjust = 0.5,  # Center-align vertically
+              size = 3.5,  # Adjust text size as needed
+              colour = "black") +  # Set label color
+    theme(
+      legend.position = "none",
+      axis.title.y = element_blank()
+    )
+
+  return(final_plot)
+}
+```
+
+## Boxplots functie log
+```{r}
+create_boxplot_log <- function(data_TVG, AquaComponent, vline, xlab) {
+  # Calculate median values for sorting
+  median_values <- data_TVG %>%
+    filter(AquaComponent == !!AquaComponent & meetreeks == "2022-2024") %>%
+    group_by(codeplas, watertype) %>%
+    summarise(median = median(ResultCalc, na.rm = TRUE), .groups = "drop") %>%
+    arrange(median)  # Sort in ascending order
+  
+  # Create a factor level for codeplas based on sorted median values
+  codeplas_order <- median_values$codeplas
+  
+  # Create the main plot
+  plot <- data_TVG %>%
+    filter(AquaComponent == !!AquaComponent & meetreeks == "2022-2024") %>%
+    mutate(codeplas = factor(codeplas, levels = codeplas_order)) %>%  # Set factor levels
     ggplot(aes(x = log10(ResultCalc), y = codeplas, colour = watertype)) +
     geom_boxplot() +
     facet_grid(watertype ~ ., scales = "free", space = "free_y") +
@@ -204,7 +346,55 @@ create_boxplot_log <- function(data_TVG, AquaComponent, vline, xlab) {
     filter(AquaComponent == !!AquaComponent & meetreeks == "2022-2024") %>%
     group_by(watertype, codeplas) %>%
     summarise(Locatie = first(Locatie), .groups = "drop") %>%
-    mutate(x_pos = Inf)  # Position labels at the right edge of the plot
+    mutate(codeplas = factor(codeplas, levels = codeplas_order),  # Set factor levels
+           x_pos = Inf)  # Position labels at the right edge of the plot
+
+  # Add labels to the plot
+  final_plot <- plot + 
+    geom_text(data = labels_data, 
+              aes(x = x_pos, y = codeplas, label = Locatie),
+              hjust = 1,  # Right-align the text
+              vjust = 0.5,  # Center-align vertically
+              size = 3.5,  # Adjust text size as needed
+              colour = "black") +  # Set label color
+    theme(
+      legend.position = "none",
+      axis.title.y = element_blank()
+    )
+
+  return(final_plot)
+}
+
+# sorteer volgens maximum ipv mediaan
+create_boxplot_log_max <- function(data_TVG, AquaComponent, vline, xlab) {
+  # Calculate median values for sorting
+  max_values <- data_TVG %>%
+    filter(AquaComponent == !!AquaComponent & meetreeks == "2022-2024") %>%
+    group_by(codeplas, watertype) %>%
+    summarise(max = max(ResultCalc, na.rm = TRUE), .groups = "drop") %>%
+    arrange(max)  # Sort in ascending order
+  
+  # Create a factor level for codeplas based on sorted median values
+  codeplas_order <- max_values$codeplas
+  
+  # Create the main plot
+  plot <- data_TVG %>%
+    filter(AquaComponent == !!AquaComponent & meetreeks == "2022-2024") %>%
+    mutate(codeplas = factor(codeplas, levels = codeplas_order)) %>%  # Set factor levels
+    ggplot(aes(x = log10(ResultCalc), y = codeplas, colour = watertype)) +
+    geom_boxplot() +
+    facet_grid(watertype ~ ., scales = "free", space = "free_y") +
+    geom_vline(data = vline, aes(xintercept = log10(xintercept), colour = watertype), 
+               linetype = "solid", size = 1) +
+    xlab(xlab)
+
+  # Create a dataset for labels
+  labels_data <- data_TVG %>%
+    filter(AquaComponent == !!AquaComponent & meetreeks == "2022-2024") %>%
+    group_by(watertype, codeplas) %>%
+    summarise(Locatie = first(Locatie), .groups = "drop") %>%
+    mutate(codeplas = factor(codeplas, levels = codeplas_order),  # Set factor levels
+           x_pos = Inf)  # Position labels at the right edge of the plot
 
   # Add labels to the plot
   final_plot <- plot + 
@@ -223,12 +413,23 @@ create_boxplot_log <- function(data_TVG, AquaComponent, vline, xlab) {
 }
 ```
 
-# Boxplots functie geen grenswaarden (met en zonder log)
+## Boxplots functie geen grenswaarden (met en zonder log)
 ```{r}
 create_boxplot_basic <- function(data_TVG, AquaComponent, xlab) {
+  # Calculate median values for sorting
+  median_values <- data_TVG %>%
+    filter(AquaComponent == !!AquaComponent & meetreeks == "2022-2024") %>%
+    group_by(codeplas, watertype) %>%
+    summarise(median = median(ResultCalc, na.rm = TRUE), .groups = "drop") %>%
+    arrange(median)  # Sort in ascending order
+  
+  # Create a factor level for codeplas based on sorted median values
+  codeplas_order <- median_values$codeplas
+  
   # Create the main plot
   plot <- data_TVG %>%
     filter(AquaComponent == !!AquaComponent & meetreeks == "2022-2024") %>%
+    mutate(codeplas = factor(codeplas, levels = codeplas_order)) %>%  # Set factor levels
     ggplot(aes(x = ResultCalc, y = codeplas, colour = watertype)) +
     geom_boxplot() +
     facet_grid(watertype ~ ., scales = "free", space = "free_y") +
@@ -239,7 +440,8 @@ create_boxplot_basic <- function(data_TVG, AquaComponent, xlab) {
     filter(AquaComponent == !!AquaComponent & meetreeks == "2022-2024") %>%
     group_by(watertype, codeplas) %>%
     summarise(Locatie = first(Locatie), .groups = "drop") %>%
-    mutate(x_pos = Inf)  # Position labels at the right edge of the plot
+    mutate(codeplas = factor(codeplas, levels = codeplas_order),  # Set factor levels
+           x_pos = Inf)  # Position labels at the right edge of the plot
 
   # Add labels to the plot
   final_plot <- plot + 
@@ -257,12 +459,66 @@ create_boxplot_basic <- function(data_TVG, AquaComponent, xlab) {
   return(final_plot)
 }
 
-# met logaritmische transformatie
-
-create_boxplot_basiclog <- function(data_TVG, AquaComponent, xlab) {
+create_boxplot_basic_max <- function(data_TVG, AquaComponent, xlab) {
+  # Calculate median values for sorting
+  max_values <- data_TVG %>%
+    filter(AquaComponent == !!AquaComponent & meetreeks == "2022-2024") %>%
+    group_by(codeplas, watertype) %>%
+    summarise(max = max(ResultCalc, na.rm = TRUE), .groups = "drop") %>%
+    arrange(max)  # Sort in ascending order
+  
+  # Create a factor level for codeplas based on sorted median values
+  codeplas_order <- max_values$codeplas
+  
   # Create the main plot
   plot <- data_TVG %>%
     filter(AquaComponent == !!AquaComponent & meetreeks == "2022-2024") %>%
+    mutate(codeplas = factor(codeplas, levels = codeplas_order)) %>%  # Set factor levels
+    ggplot(aes(x = ResultCalc, y = codeplas, colour = watertype)) +
+    geom_boxplot() +
+    facet_grid(watertype ~ ., scales = "free", space = "free_y") +
+    xlab(xlab)
+
+  # Create a dataset for labels
+  labels_data <- data_TVG %>%
+    filter(AquaComponent == !!AquaComponent & meetreeks == "2022-2024") %>%
+    group_by(watertype, codeplas) %>%
+    summarise(Locatie = first(Locatie), .groups = "drop") %>%
+    mutate(codeplas = factor(codeplas, levels = codeplas_order),  # Set factor levels
+           x_pos = Inf)  # Position labels at the right edge of the plot
+
+  # Add labels to the plot
+  final_plot <- plot + 
+    geom_text(data = labels_data, 
+              aes(x = x_pos, y = codeplas, label = Locatie),
+              hjust = 1,  # Right-align the text
+              vjust = 0.5,  # Center-align vertically
+              size = 3.5,  # Adjust text size as needed
+              colour = "black") +  # Set label color
+    theme(
+      legend.position = "none",
+      axis.title.y = element_blank()
+    )
+
+  return(final_plot)
+}
+# met logaritmische transformatie
+
+create_boxplot_basiclog <- function(data_TVG, AquaComponent, xlab) {
+  # Calculate median values for sorting
+  median_values <- data_TVG %>%
+    filter(AquaComponent == !!AquaComponent & meetreeks == "2022-2024") %>%
+    group_by(codeplas, watertype) %>%
+    summarise(median = median(ResultCalc, na.rm = TRUE), .groups = "drop") %>%
+    arrange(median)  # Sort in ascending order
+  
+  # Create a factor level for codeplas based on sorted median values
+  codeplas_order <- median_values$codeplas
+  
+  # Create the main plot
+  plot <- data_TVG %>%
+    filter(AquaComponent == !!AquaComponent & meetreeks == "2022-2024") %>%
+    mutate(codeplas = factor(codeplas, levels = codeplas_order)) %>%  # Set factor levels
     ggplot(aes(x = log10(ResultCalc), y = codeplas, colour = watertype)) +
     geom_boxplot() +
     facet_grid(watertype ~ ., scales = "free", space = "free_y") +
@@ -273,7 +529,52 @@ create_boxplot_basiclog <- function(data_TVG, AquaComponent, xlab) {
     filter(AquaComponent == !!AquaComponent & meetreeks == "2022-2024") %>%
     group_by(watertype, codeplas) %>%
     summarise(Locatie = first(Locatie), .groups = "drop") %>%
-    mutate(x_pos = Inf)  # Position labels at the right edge of the plot
+    mutate(codeplas = factor(codeplas, levels = codeplas_order),  # Set factor levels
+           x_pos = Inf)  # Position labels at the right edge of the plot
+
+  # Add labels to the plot
+  final_plot <- plot + 
+    geom_text(data = labels_data, 
+              aes(x = x_pos, y = codeplas, label = Locatie),
+              hjust = 1,  # Right-align the text
+              vjust = 0.5,  # Center-align vertically
+              size = 3.5,  # Adjust text size as needed
+              colour = "black") +  # Set label color
+    theme(
+      legend.position = "none",
+      axis.title.y = element_blank()
+    )
+
+  return(final_plot)
+}
+
+create_boxplot_basiclog_max <- function(data_TVG, AquaComponent, xlab) {
+  # Calculate median values for sorting
+  max_values <- data_TVG %>%
+    filter(AquaComponent == !!AquaComponent & meetreeks == "2022-2024") %>%
+    group_by(codeplas, watertype) %>%
+    summarise(max = max(ResultCalc, na.rm = TRUE), .groups = "drop") %>%
+    arrange(max)  # Sort in ascending order
+  
+  # Create a factor level for codeplas based on sorted median values
+  codeplas_order <- max_values$codeplas
+  
+  # Create the main plot
+  plot <- data_TVG %>%
+    filter(AquaComponent == !!AquaComponent & meetreeks == "2022-2024") %>%
+    mutate(codeplas = factor(codeplas, levels = codeplas_order)) %>%  # Set factor levels
+    ggplot(aes(x = log10(ResultCalc), y = codeplas, colour = watertype)) +
+    geom_boxplot() +
+    facet_grid(watertype ~ ., scales = "free", space = "free_y") +
+    xlab(xlab)
+
+  # Create a dataset for labels
+  labels_data <- data_TVG %>%
+    filter(AquaComponent == !!AquaComponent & meetreeks == "2022-2024") %>%
+    group_by(watertype, codeplas) %>%
+    summarise(Locatie = first(Locatie), .groups = "drop") %>%
+    mutate(codeplas = factor(codeplas, levels = codeplas_order),  # Set factor levels
+           x_pos = Inf)  # Position labels at the right edge of the plot
 
   # Add labels to the plot
   final_plot <- plot + 
@@ -292,28 +593,28 @@ create_boxplot_basiclog <- function(data_TVG, AquaComponent, xlab) {
 }
 ```
 
-# Boxplots
+## Boxplots
 ```{r}
 # chloride
 vline_Cl <- data.frame(
   watertype = c("Aw-om", "Cb", "Czb", "Zm", "Zs"),
   xintercept = c(140, 70, 50, 20, 20)
 )
-create_boxplot(data_TVG, "Cl", vline_Cl, "Chloride-concentratie (mg/l)")
+create_boxplot_p90(data_TVG, "Cl", vline_Cl, "Chloride-concentratie (mg/l)")
 
 # elektrische geleidbaarheid
 vline_EGV <- data.frame(
   watertype = c("Aw-om", "Cb", "Czb", "Zm", "Zs"),
   xintercept = c(750, 350, 350, 100, 100)
 )
-create_boxplot(data_TVG, "EGV25_veld", vline_EGV, "Elektrische geleidbaarheid (µS/cm)")
+create_boxplot_p90(data_TVG, "EGV25_veld", vline_EGV, "Elektrische geleidbaarheid (µS/cm)")
 
 # temperatuur
 vline_Temp <- data.frame(
   watertype = c("Aw-om", "Cb", "Czb", "Zm", "Zs"),
   xintercept <- 25
 )
-create_boxplot(data_TVG, "T_veld", vline_Temp, "Temperatuur (°C)")
+create_boxplot_max(data_TVG, "T_veld", vline_Temp, "Temperatuur (°C)")
 
 # zuurstofconcentratie
 vline_O2c <- data.frame(
@@ -328,7 +629,7 @@ vline_O2v <- data.frame(
   watertype = c("Aw-om", "Cb", "Czb", "Zm", "Zs"),
   xintercept <- 120
 )
-create_boxplot(data_TVG, "O2verz", vline_O2v, "Zuurstofverzadiging (%)")
+create_boxplot_max(data_TVG, "O2verz", vline_O2v, "Zuurstofverzadiging (%)")
 
 # chlorofyl-a
 vline_chla <- data.frame(
@@ -344,7 +645,7 @@ vline_SO4 <- data.frame(
   xintercept = c(100, 50, 40, 15, 15)
 )
 create_boxplot(data_TVG, "SO4", vline_SO4, "Sulfaat-concentratie (mg/l)")
-create_boxplot_log(data_TVG, "SO4", vline_SO4, "Sulfaat-concentratie (mg/l)")
+create_boxplot_log(data_TVG, "SO4", vline_SO4, "Sulfaat-concentratie (log10 mg/l)")
 
 # Totale stikstof TN
 vline_TN <- data.frame(
@@ -352,7 +653,7 @@ vline_TN <- data.frame(
   xintercept = c(1, 1.3, 1.3, 1.3, 1.3)
 )
 create_boxplot(data_TVG %>% filter(seizoen == "zomer"), "TN", vline_TN, "Totale stikstof (mg N/l)")
-create_boxplot_log(data_TVG %>% filter(seizoen == "zomer"), "TN", vline_TN, "Totale stikstof (log mg N/l)")
+create_boxplot_log(data_TVG %>% filter(seizoen == "zomer"), "TN", vline_TN, "Totale stikstof (log10 mg N/l)")
 
 # Totale fosfor TP
 vline_TP <- data.frame(
@@ -360,31 +661,32 @@ vline_TP <- data.frame(
   xintercept = c(0.04, 0.04, 0.03, 0.03, 0.03)
 )
 create_boxplot(data_TVG %>% filter(seizoen == "zomer"), "TP", vline_TP, "Totale fosfor (mg P/l)")
-create_boxplot_log(data_TVG %>% filter(seizoen == "zomer"), "TP", vline_TP, "Totale fosfor (mg P/l)")
+create_boxplot_log(data_TVG %>% filter(seizoen == "zomer"), "TP", vline_TP, "Totale fosfor (log10 mg P/l)")
 
 # PO4_P
-create_boxplot_basic(data_TVG, "PO4_P", "Orthofosfaat (mg P/l)")
+create_boxplot_basic_max(data_TVG, "PO4_P", "Orthofosfaat (mg P/l)")
 
 # Zwevende stof 105 & 550
-create_boxplot_basic(data_TVG, "ZS_105", "Zwevende stof (mg/l 105°)")
-create_boxplot_basic(data_TVG, "ZS_550", "Zwevende stof (mg/l 550°)")
+create_boxplot_basic_max(data_TVG, "ZS_105", "Zwevende stof (mg/l 105°)")
+create_boxplot_basic_max(data_TVG, "ZS_550", "Zwevende stof (mg/l 550°)")
 
 # absorptie
 create_boxplot_basic(data_TVG, "absorptie_440", "Absorptie 440nm (ABS)")
 create_boxplot_basiclog(data_TVG, "absorptie_440", "Absorptie 440nm (log10 ABS)")
 
 # NH4_N
-create_boxplot_basic(data_TVG, "NH4_N", "NH4_N (mg N/l)")
-create_boxplot_basiclog(data_TVG, "NH4_N", "NH4_N (log10 mg N/l)")
+create_boxplot_basic_max(data_TVG, "NH4_N", "NH4_N (mg N/l)")
+create_boxplot_basiclog_max(data_TVG, "NH4_N", "NH4_N (log10 mg N/l)")
 
 # NO3_N
 create_boxplot_basic(data_TVG, "NO3_N", "NO3_N (mg N/l)")
 create_boxplot_basiclog(data_TVG, "NO3_N", "NO3_N (log10 mg N/l)")
+create_boxplot_basiclog_max(data_TVG, "NO3_N", "NO3_N (log10 mg N/l)")
 
 
 # NO2_N
-create_boxplot_basic(data_TVG, "NO2_N", "NO2_N (mg N/l)")
-create_boxplot_basiclog(data_TVG, "NO2_N", "NO2_N (log10 mg N/l)")
+create_boxplot_basic_max(data_TVG, "NO2_N", "NO2_N (mg N/l)")
+create_boxplot_basiclog_max(data_TVG, "NO2_N", "NO2_N (log10 mg N/l)")
 
 # Anorganische stikstof
 vline_N_anorg <- data.frame(
@@ -392,13 +694,13 @@ vline_N_anorg <- data.frame(
   xintercept <- 0.14
 )
 create_boxplot(data_met_N_anorg, "N_anorg", vline_N_anorg, "Anorganische stikstof (mg N/l)")
-create_boxplot_log(data_met_N_anorg, "N_anorg", vline_N_anorg, "Anorganische stikstof (log10 mg N/l)")
+create_boxplot_log_max(data_met_N_anorg, "N_anorg", vline_N_anorg, "Anorganische stikstof (log10 mg N/l)")
 
 
 ```
 
 
-# Boxplots pH min - max
+## Boxplots pH min - max
 ```{r}
 vline_pH <- data.frame(
   watertype = c("Aw-om", "Cb", "Czb", "Zm", "Zs"),
@@ -406,9 +708,20 @@ vline_pH <- data.frame(
   xinterceptmax = c(8.5, 7.5, 7.5, 6.5, 6.5)
 )
 
-# Assuming data_TVG is your main dataset
+# Calculate median values for sorting
+median_values <- data_TVG %>%
+  filter(AquaComponent == "pH_veld" & meetreeks == "2022-2024") %>%
+  group_by(codeplas, watertype) %>%
+  summarise(median = median(ResultCalc, na.rm = TRUE), .groups = "drop") %>%
+  arrange(median)  # Sort in ascending order
+
+# Create a factor level for codeplas based on sorted median values
+codeplas_order <- median_values$codeplas
+
+# Create the main plot
 plot <- data_TVG %>%
   filter(AquaComponent == "pH_veld" & meetreeks == "2022-2024") %>%
+  mutate(codeplas = factor(codeplas, levels = codeplas_order)) %>%  # Set factor levels
   ggplot(aes(x = ResultCalc, y = codeplas, colour = watertype)) +
   geom_boxplot() +
   facet_grid(watertype ~ ., scales = "free", space = "free_y") +
@@ -423,7 +736,8 @@ labels_data <- data_TVG %>%
   filter(AquaComponent == "pH_veld" & meetreeks == "2022-2024") %>%
   group_by(watertype, codeplas) %>%
   summarise(Locatie = first(Locatie), .groups = "drop") %>%
-  mutate(x_pos = Inf)  # Position labels at the right edge of the plot
+  mutate(codeplas = factor(codeplas, levels = codeplas_order),  # Set factor levels
+         x_pos = Inf)  # Position labels at the right edge of the plot
 
 # Add labels to the plot
 plot + 
@@ -440,14 +754,85 @@ plot +
 
 ```
 
-# Boxplots Alkaliniteit (geen grenswaarden)
+## Boxplots Secchi-diepte en waterdiepte
+```{r}
+vline_SD <- data.frame(
+  watertype = c("Aw-om", "Cb", "Czb", "Zm", "Zs"),
+  xintercept = 0.9
+)
+
+data_SD_WD <- data_TVG %>% 
+  filter(AquaComponent %in% c("SD_veld", "WD_veld") & meetreeks == "2022-2024") %>%
+  group_by(codeplas, AquaComponent) %>%
+  mutate(gemiddelde = mean(ResultCalc, na.rm = TRUE)) %>%
+  ungroup() %>%
+  group_by(codeplas) %>%
+  mutate(Bodemzicht = case_when(
+    all(gemiddelde[AquaComponent == "SD_veld"] >= 0.9 * gemiddelde[AquaComponent == "WD_veld"]) ~ "ja",
+    TRUE ~ "nee"
+  )) %>% 
+  ungroup()
+
+# Calculate median values for sorting
+median_values <- data_SD_WD %>%
+  filter(AquaComponent == "SD_veld") %>%
+  group_by(codeplas, watertype) %>%
+  summarise(median = median(ResultCalc, na.rm = TRUE), .groups = "drop") %>%
+  arrange(median)  # Sort in ascending order
+
+# Create a factor level for codeplas based on sorted median values
+codeplas_order <- median_values$codeplas
+
+# Create a dataset for labels
+labels_data <- data_SD_WD %>%
+  filter(AquaComponent == "SD_veld") %>%
+  group_by(watertype, codeplas) %>%
+  summarise(Locatie = first(Locatie), .groups = "drop") %>%
+  mutate(
+    codeplas = factor(codeplas, levels = codeplas_order),  # Set factor levels
+    x_pos = Inf  # Position labels at the right edge of the plot
+  )
+
+# Create the plot
+p <- data_SD_WD %>% 
+  filter(AquaComponent == "SD_veld") %>%
+  mutate(codeplas = factor(codeplas, levels = codeplas_order)) %>%  # Set factor levels
+  ggplot(aes(x = ResultCalc, y = codeplas, colour = watertype, fill = Bodemzicht)) +
+  geom_boxplot() +
+  xlab("Secchi-diepte (m)") +
+  facet_grid(watertype ~ ., scales = "free", space = "free_y") +
+  geom_vline(data = vline_SD, aes(xintercept = xintercept, colour = watertype),
+             linetype = "solid", size = 1) +
+  scale_x_continuous(breaks = pretty_breaks(n = 10)) +
+  scale_fill_manual(values = c("ja" = "lightblue", "nee" = "grey")) +
+  theme(
+      legend.position = "none",
+      axis.title.y = element_blank(),
+      plot.margin = margin(r = 100)) +  # Increase right margin for labels
+  guides(colour = guide_legend(title = "Watertype"),
+         fill = guide_legend(title = "Bodemzicht")) +
+  geom_text(data = labels_data, 
+          aes(x = x_pos, y = codeplas, label = Locatie),
+          inherit.aes = FALSE,
+          hjust = 1,
+          vjust = 0.5,
+          size = 3.5,
+          colour = "black") +  # Set label color
+  coord_cartesian(clip = "off")  # Allow drawing outside the plot area
+
+print(p)
+
+```
+
+
+## Boxplots Alkaliniteit (geen grenswaarden)
 ```{r}
 create_boxplot_basic(data_TVG, "alkaliniteit", "Alkaliniteit (meq/l)")
 create_boxplot_basiclog(data_TVG, "alkaliniteit", "Alkaliniteit (log10 meq/l)")
 ```
 
-
-# functie voor tijdsreeksen
+# TIJDSREEKSEN
+## functie voor tijdsreeksen
 ```{r}
 generate_plot <- function(codeplas_value, aqua_component, watertype_thresholds, y_label = NULL) {
   filtered_data <- data_TVG %>%
@@ -488,7 +873,67 @@ generate_multiple_plots <- function(codeplas_values, aqua_component, watertype_t
 
 ```
 
-# functie voor tijdsreeksen zonder grenswaarde
+### voor 2020
+```{r}
+generate_plot <- function(codeplas_value, aqua_component, watertype_thresholds, y_label = NULL) {
+  filtered_data <- data_TVG %>%
+    filter(AquaComponent == aqua_component & meetreeks == "<2020" & codeplas == codeplas_value)
+  
+  n_results <- nrow(filtered_data)
+  interval <- if(n_results > 12) "2 months" else "1 month"
+  
+  watertype <- unique(filtered_data$watertype)
+  threshold <- watertype_thresholds[[watertype]] %||% NA # Use NA if not found
+  
+  # If y_label is not provided, use "ResultCalc" as default
+  y_axis_label <- if(is.null(y_label)) "ResultCalc" else y_label
+  
+  plot <- filtered_data %>%
+    ggplot(aes(x = FieldSamplingDate, y = ResultCalc)) +
+    scale_x_date(date_breaks = interval, date_labels = "%m/%y") +
+    scale_y_continuous(breaks = pretty_breaks(n = 10)) +
+    geom_line(linewidth = 1, color = "orange") +
+    geom_point(color = "orange") +
+    geom_hline(yintercept = threshold, linetype = "dashed", color = "black", size = 1) +
+    labs(x = "Datum staalname",
+         y = y_axis_label) +
+  theme(
+    axis.title = element_text(size = 16),
+    axis.text = element_text(size = 14)
+  )
+    
+  
+  return(plot)
+}
+
+generate_multiple_plots <- function(codeplas_values, aqua_component, watertype_thresholds, y_label = NULL) {
+  plots <- map(codeplas_values, ~generate_plot(.x, aqua_component, watertype_thresholds, y_label))
+  names(plots) <- codeplas_values
+  return(plots)
+}
+
+
+```
+
+```{r}
+# Chloride
+grenswaarden_Cl <- list(
+  "Aw-om" = 140, 
+  "Cb" = 70, 
+  "Czb" = 50, 
+  "Zm" = 20, 
+  "Zs" = 20
+)
+
+plots_Cl2020 <- generate_multiple_plots(reeks_2022_2024, "Cl", grenswaarden_Cl, "Chloride (mg/l)")
+walk2(plots_Cl2020, names(plots_Cl2020),
+      ~ggsave(filename = paste0("./exports/Chloride2020/", .y, "_", "Cl2020", ".png"), plot = .x, width = 10, height = 6))
+
+```
+
+
+
+## functie voor tijdsreeksen zonder grenswaarde
 ```{r}
 generate_plot_nohline <- function(codeplas_value, aqua_component, y_label = NULL) {
   filtered_data <- data_TVG %>%
@@ -525,7 +970,7 @@ generate_multiple_plots_nohline <- function(codeplas_values, aqua_component, y_l
 
 ```
 
-# code voor 2 variabelen te plotten (vb WD en SD, ZS105 en ZS550)
+## code voor 2 variabelen te plotten (vb WD en SD, ZS105 en ZS550)
 ```{r}
 generate_plot_2 <- function(codeplas_value, aqua_component1, aqua_component2, watertype_thresholds, y_label = NULL) {
   filtered_data1 <- data_TVG %>%
@@ -611,7 +1056,7 @@ generate_multiple_plots_2_nohline <- function(codeplas_values, aqua_component1, 
 }
 ```
 
-# functie tijdsreeks met 2 variabelen op 1 figuur
+## functie tijdsreeks met 2 variabelen op 1 figuur
 ```{r}
 generate_plot_two_components <- function(codeplas_value, aqua_component1, aqua_component2, y_label1 = NULL, y_label2 = NULL) {
   filtered_data1 <- data_TVG %>%
@@ -662,12 +1107,14 @@ generate_multiple_plots_two_components <- function(codeplas_values, aqua_compone
 
 ```
 
-# tijdreeksen 2 variabelen
+## tijdreeksen 2 variabelen
 ```{r}
 # Zuurtegraad en absorptie
 plots_pH_abs <- generate_multiple_plots_two_components(reeks_2022_2024, "pH_veld", "absorptie_440", "Zuurtegraad - pH", "Absorptie (440nm ABS)")
 walk2(plots_pH_abs, names(plots_pH_abs),
       ~ggsave(filename = paste0("./exports/pH_abs/", .y, "_", "pH_abs", ".png"), plot = .x, width = 10, height = 6))
+
+
 
 # chlorofyl_a en absorptie
 plots_chla_abs <- generate_multiple_plots_two_components(reeks_2022_2024, "chl_a", "absorptie_440", "Chlorofyl-a (µg/l)", "Absorptie (440nm ABS)")
@@ -677,7 +1124,7 @@ walk2(plots_chla_abs, names(plots_chla_abs),
 ```
 
 
-# tijdreeksen opstellen voor variabelen
+## tijdreeksen opstellen voor variabelen
 ```{r}
 # Chloride
 grenswaarden_Cl <- list(
@@ -817,7 +1264,7 @@ walk2(plots_PO4_P, names(plots_PO4_P),
 
 ```
 
-# aparte code voor zuurtegraad (onder en bovengrenzen - 2 horizontale lijnen)
+## aparte code voor zuurtegraad (onder en bovengrenzen - 2 horizontale lijnen)
 ```{r}
 generate_plot_pH <- function(codeplas_value, aqua_component, watertype_thresholds, y_label = NULL) {
   filtered_data <- data_TVG %>%
@@ -884,7 +1331,7 @@ walk2(plots_pH, names(plots_pH),
       ~ggsave(filename = paste0("./exports/pH/", .y, "_", "pH", ".png"), plot = .x, width = 10, height = 6))
 ```
 
-# aparte code voor WD en SD (2 variabelen in 1 plot)
+## aparte code voor WD en SD (2 variabelen in 1 plot)
 ```{r}
 # waterdiepte en secchi-diepte
 grenswaarden_SD <- list(
@@ -917,81 +1364,94 @@ walk2(plots_ZS105, names(plots_ZS105),
       ~ggsave(filename = paste0("./exports/ZS_105_550_geenMKN/", .y, "_", "ZS_nohline", ".png"), plot = .x, width = 10, height = 6))
 ```
 
-
-# functies
+## aparte code N_anorganisch (NH4_N + NO3_N + NO2_N)
 ```{r}
-# genereer plot en sla op
-save_plot <- function(dataset, component, naam, title = NULL, xas = NULL, yas = NULL){
-  figuur <- dataset %>%
-    filter(AquaComponent %in% component) %>%  
-    ggplot(aes(x = FieldSamplingDate, y = ResultCalc, color = Label, linetype = codeplas)) +
-    scale_x_date(date_breaks = "1 month", date_labels = "%m/%y") + # visualiseert data per maand in format maand-jaar
-    geom_line(linewidth = 1) +
-    geom_point() +
-    labs(title = title) + xlab(xas) + ylab(yas)
-  print(figuur)
-  ggsave(plot = figuur,
-         filename = paste0("./exports/NKP_", naam, ".jpg"), width = 9, height = 6)
-}
-
-# puur om plot te genereren
-maak_plot <- function(dataset, component, title = NULL, xas = NULL, yas = NULL){
-  figuur <- dataset %>%
-    filter(AquaComponent %in% component) %>%  
-    ggplot(aes(x = FieldSamplingDate, y = ResultCalc, color = label)) +
-    scale_x_date(date_breaks = "1 month", date_labels = "%m/%y") + # visualiseert data per maand in format maand-jaar
-    geom_line(linewidth = 1) +
-    geom_point() +
-    labs(title = title) + xlab(xas) + ylab(yas)
-  figuur
-}
-
-## met fill (stikstofplots)
-maak_plot_area <- function(dataset, component, title = NULL, xas = NULL, yas = NULL){
-  figuur <- dataset %>%
-    filter(AquaComponent %in% component) %>%  
-    ggplot(aes(x = FieldSamplingDate, y = ResultCalc, fill = label)) +
-    scale_x_date(date_breaks = "1 month", date_labels = "%m/%y") + # visualiseert data per maand in format maand-jaar
-    geom_line() +
-    geom_area(position = "identity", alpha = 0.6) +
-    labs(title = title) + xlab(xas) + ylab(yas)
-  figuur
-}
-# plots genereren voor 1 variabele (voor 1 locatie)
-maak_plot_1var <- function(dataset, component, title = NULL, xas = "Datum staalname", yas = NULL){
-  # bereken aantal datapunten
-  filtered_data <- dataset %>% 
-    filter(AquaComponent %in% component)
+generate_plot_Nanorg <- function(codeplas_value, aqua_components, y_label = NULL) {
+  filtered_data <- data_TVG %>%
+    filter(AquaComponent %in% aqua_components & meetreeks == "2022-2024" & codeplas == codeplas_value)
+  
   n_results <- nrow(filtered_data)
-  # zet interval x-as als 2 maand als veel datapunten
-  interval <- if(n_results > 16) "2 months" else "1 month"
-  # maak figuur
-  figuur <- filtered_data %>%
-    filter(AquaComponent %in% component) %>%  
-    ggplot(aes(x = FieldSamplingDate, y = ResultCalc)) +
-    scale_x_date(date_breaks = interval, date_labels = "%m/%y") + # visualiseert data per maand in format maand-jaar
+  interval <- if(n_results > 12) "2 months" else "1 month"
+  
+  # If y_label is not provided, use "ResultCalc" as default
+  y_axis_label <- if(is.null(y_label)) "ResultCalc" else y_label
+  
+  plot <- filtered_data %>%
+    ggplot(aes(x = FieldSamplingDate, y = ResultCalc, fill = AquaComponent)) +
+    geom_area(position = "identity", alpha = 0.6, color = "black", size = 0.5) +
+    scale_x_date(date_breaks = interval, date_labels = "%m/%y") +
     scale_y_continuous(breaks = pretty_breaks(n = 10)) +
-    geom_line(linewidth = 1, color = "orange") +
-    geom_point(color = "orange") +
-    labs(title = title) + xlab(xas) + ylab(yas)
-  figuur
+    scale_fill_brewer(palette = "Set2") +
+    labs(x = "Datum staalname",
+         y = y_axis_label) +
+    theme(
+      axis.title = element_text(size = 16),
+      axis.text = element_text(size = 14),
+      legend.position = "bottom",
+      legend.title = element_blank()
+    )
+  
+  return(plot)
 }
 
-# voor 1 variabele voor alle locaties
-maak_plot_1var_loc <- function(dataset, component, title = NULL, xas = "Datum staalname", yas = NULL){
-  figuur <- dataset %>%
-    filter(AquaComponent %in% component) %>%  
-    ggplot(aes(x = FieldSamplingDate, y = ResultCalc, color = codeplas)) +
-    scale_x_date(date_breaks = "1 month", date_labels = "%m/%y") + # visualiseert data per maand in format maand-jaar
-    scale_y_continuous(breaks = pretty_breaks(n = 10)) +
-    geom_line(linewidth = 1) +
-    geom_point() +
-    labs(title = title) + xlab(xas) + ylab(yas)
-  figuur
+generate_multiple_plots_Nanorg <- function(codeplas_values, aqua_components, y_label = NULL) {
+  plots <- map(codeplas_values, ~generate_plot_Nanorg(.x, aqua_components, y_label))
+  names(plots) <- codeplas_values
+  return(plots)
 }
+
+# met log-transformatie
+generate_plot_Nanorglog <- function(codeplas_value, aqua_components, y_label = NULL) {
+  filtered_data <- data_TVG %>%
+    filter(AquaComponent %in% aqua_components & meetreeks == "2022-2024" & codeplas == codeplas_value) %>%
+    mutate(log_ResultCalc = log10(pmax(ResultCalc, 1e-10)))  # Avoid log(0)
+  
+  n_results <- nrow(filtered_data)
+  interval <- if(n_results > 12) "2 months" else "1 month"
+  
+  y_axis_label <- if(is.null(y_label)) "log10(ResultCalc)" else y_label
+  
+  plot <- filtered_data %>%
+    ggplot(aes(x = FieldSamplingDate, y = log_ResultCalc, fill = AquaComponent, color = AquaComponent)) +
+    geom_ribbon(aes(ymin = min(log_ResultCalc), ymax = log_ResultCalc), alpha = 0.6) +
+    geom_line(size = 0.5) +
+    scale_x_date(date_breaks = interval, date_labels = "%m/%y") +
+    scale_y_continuous(breaks = pretty_breaks(n = 10),
+                       labels = function(x) sprintf("10^%.0f", x),
+                       limits = c(NA, NA)) +  # Allow ggplot to set appropriate limits
+    scale_fill_brewer(palette = "Set2") +
+    scale_color_brewer(palette = "Set2") +
+    labs(x = "Datum staalname", y = y_axis_label) +
+    theme(
+      axis.title = element_text(size = 16),
+      axis.text = element_text(size = 14),
+      legend.position = "bottom",
+      legend.title = element_blank()
+    )
+  
+  return(plot)
+}
+
+
+
+generate_multiple_plots_Nanorglog <- function(codeplas_values, aqua_components, y_label = NULL) {
+  plots <- map(codeplas_values, ~generate_plot_Nanorglog(.x, aqua_components, y_label))
+  names(plots) <- codeplas_values
+  return(plots)
+}
+
+plots_N_anorg <- generate_multiple_plots_Nanorg(reeks_2022_2024, c("NH4_N", "NO3_N", "NO2_N"), "mg N/l")
+walk2(plots_N_anorg, names(plots_N_anorg),
+      ~ggsave(filename = paste0("./exports/N_anorg/", .y, "_", "N_anorg", ".png"), plot = .x, width = 10, height = 6))
+
+plots_N_anorg_log <- generate_multiple_plots_Nanorglog(reeks_2022_2024, c("NH4_N", "NO3_N", "NO2_N"), "log10 (mg N/l)")
+walk2(plots_N_anorg_log, names(plots_N_anorg_log),
+      ~ggsave(filename = paste0("./exports/N_anorg_log/", .y, "_", "N_anorg_log", ".png"), plot = .x, width = 10, height = 6))
 ```
 
-# Zuurtegraad
+
+# EXPORTS VOOR TOETSING MKN
+## Zuurtegraad
 ```{r}
 data_TVG %>%
   filter(AquaComponent %in% "pH_veld") %>%
@@ -1016,64 +1476,9 @@ data_TVG %>%
             pH_max = max(ResultCalc, na.rm = TRUE),
             pH_bereik = paste(min(ResultCalc, na.rm = TRUE), "-", max(ResultCalc, na.rm = TRUE))) %>%
   write.csv2(file = "./exports/pH22_23.csv")
-
-locaties <- unique(data_TVG$codeplas)
-
-for (ID in locaties) {
-  figuur <- maak_plot_1var(data_TVG %>% filter(codeplas %in% ID), "pH_veld" , paste("Zuurtegraad (pH)", ID, "_meetreeks\n"), yas = "Meetwaarde") +
-  scale_y_continuous(breaks = pretty_breaks(n = 10))
-  print(figuur)
-  ggsave(plot = figuur,
-         filename = paste0("./exports/pH/", ID,"_pH", ".jpg"), width = 1080, height = 720, units = "px", scale = 3)
-}
-
-## boxplots zuurtegraad
-vline_pH <- data.frame(
-  watertype = c("Aw-om", "Cb", "Czb", "Zm", "Zs"),
-  xinterceptmin = c(6.5, 5.5, 5.5, 4.5, 4.5),
-  xinterceptmax = c(8.5, 7.5, 7.5, 6.5, 6.5)
-)
-
-data_TVG %>%
-  filter(AquaComponent == "pH_veld" & meetreeks == "2022-2024") %>%
-  ggplot(aes(x = ResultCalc, y = codeplas, colour = watertype)) +
-  geom_boxplot() +
-  xlab("Zuurtegraad") +
-  facet_grid(watertype ~ ., scales = "free", space = "free_y") +
-  geom_vline(data = vline_pH, aes(xintercept = xinterceptmin, colour = watertype), 
-             linetype = "solid", size = 1) +
-  geom_vline(data = vline_pH, aes(xintercept = xinterceptmax, colour = watertype), 
-             linetype = "solid", size = 1) +
-  scale_x_continuous(breaks = pretty_breaks(n = 10))
-
-
-# zuurtegraad en absorptie
-
-## voor 2024
-locaties <- unique(data_TVG$codeplas[data_TVG$meetreeks == "2024"])
-
-for (ID in locaties) {
-  figuur <- maak_plot(data_TVG %>% filter(codeplas %in% ID & meetreeks == "2024"), c("pH_veld", "absorptie_440") , paste("Zuurtegraad en humuszuren", ID, "_meetreeks2024\n"), yas = "Meetwaarde (log10)") +
-  scale_y_log10()
-  print(figuur)
-  ggsave(plot = figuur,
-         filename = paste0("./exports/pH_abs_2024/", ID,"_pH_abs_2024", ".jpg"), width = 1080, height = 720, units = "px", scale = 3)
-}
-
-## voor 2022-2023
-locaties <- unique(data_TVG$codeplas[data_TVG$meetreeks == "2022-2023"])
-
-for (ID in locaties) {
-  figuur <- maak_plot(data_TVG %>% filter(codeplas %in% ID & meetreeks == "2022-2023"), c("pH_veld", "absorptie_440") , paste("Zuurtegraad en humuszuren", ID, "_meetreeks2022-2023\n"), yas = "Meetwaarde (log10)") +
-  scale_y_log10()
-  print(figuur)
-  ggsave(plot = figuur,
-         filename = paste0("./exports/pH_abs_2022_2023/", ID,"_pH_abs_2022_2023", ".jpg"), width = 1080, height = 720, units = "px", scale = 3)
-}
-
 ```
 
-# Helderheid
+## Helderheid
 ```{r}
 # Secchi-diepte (SD_veld)
 data_TVG %>%
@@ -1091,60 +1496,6 @@ data_TVG %>%
   group_by(codeplas) %>%
   summarise(SD_zhjgem = mean(ResultCalc, na.rm = TRUE)) %>%
   write.csv2(file = "./exports/SD_zhj_2022-23.csv")
-
-# boxplot voor Secchi-diepte
-vline_SD <- data.frame(
-  watertype = c("Aw-om", "Cb", "Czb", "Zm", "Zs"),
-  xintercept = 0.9
-)
-
-data_SD_WD <- data_TVG %>% 
-  filter(AquaComponent %in% c("SD_veld", "WD_veld") & meetreeks == "2022-2024") %>%
-  group_by(codeplas, AquaComponent) %>%
-  mutate(gemiddelde = mean(ResultCalc, na.rm = TRUE)) %>%
-  ungroup() %>%
-  group_by(codeplas) %>%
-  mutate(Bodemzicht = case_when(
-    all(gemiddelde[AquaComponent == "SD_veld"] >= 0.9 * gemiddelde[AquaComponent == "WD_veld"]) ~ "ja",
-    TRUE ~ "nee"
-  )) %>% 
-  ungroup()
-
-# Create a dataset for labels
-labels_data <- data_SD_WD %>%
-  filter(AquaComponent == "SD_veld") %>%
-  group_by(watertype, codeplas) %>%
-  summarise(Locatie = first(Locatie), .groups = "drop") %>%
-  mutate(x_pos = Inf)  # Position labels at the right edge of the plot
-
-# Create the plot
-p <- data_SD_WD %>% 
-  filter(AquaComponent == "SD_veld") %>%
-  ggplot(aes(x = ResultCalc, y = codeplas, colour = watertype, fill = Bodemzicht)) +
-  geom_boxplot() +
-  xlab("Secchi-diepte (m)") +
-  facet_grid(watertype ~ ., scales = "free", space = "free_y") +
-  geom_vline(data = vline_SD, aes(xintercept = xintercept, colour = watertype),
-             linetype = "solid", size = 1) +
-  scale_x_continuous(breaks = pretty_breaks(n = 10)) +
-  scale_fill_manual(values = c("ja" = "lightblue", "nee" = "grey")) +
-  theme(
-      legend.position = "none",
-      axis.title.y = element_blank(),
-      plot.margin = margin(r = 100)) +  # Increase right margin for labels
-  guides(colour = guide_legend(title = "Watertype"),
-         fill = guide_legend(title = "Bodemzicht")) +
-  geom_text(data = labels_data, 
-          aes(x = x_pos, y = codeplas, label = Locatie),
-          inherit.aes = FALSE,
-          hjust = 1,
-          vjust = 0.5,
-          size = 3.5,
-          colour = "black") +  # Set label color
-  coord_cartesian(clip = "off")  # Allow drawing outside the plot area
-
-print(p)
-
 
 # Waterdiepte (WD_diepte)
 data_TVG %>%
@@ -1224,28 +1575,6 @@ data_TVG %>%
   facet_grid(watertype ~ ., scales = "free", space = "free_y") +
   scale_x_continuous(breaks = pretty_breaks(n = 10))
 
-## voor 2024
-locaties <- unique(data_TVG$codeplas[data_TVG$meetreeks == "2024"])
-
-for (ID in locaties) {
-  figuur <- maak_plot(data_TVG %>% filter(codeplas %in% ID & meetreeks == "2024") , c("ZS_105", "ZS_550") , paste("Zwevende stof (550 & 105°C) meetreeks 2024", ID, "\n"), yas = "Meetwaarde (g/L)") +
-  scale_y_continuous(breaks = pretty_breaks(n = 10, min.n = 10))
-  print(figuur)
-  ggsave(plot = figuur,
-         filename = paste0("./exports/ZS550-105_2024/", ID,"_ZS550_105_2024", ".jpg"), width = 1080, height = 720, units = "px", scale = 3)
-}
-
-## voor 2022-2023
-locaties <- unique(data_TVG$codeplas[data_TVG$meetreeks == "2022-2023"])
-
-for (ID in locaties) {
-  figuur <- maak_plot(data_TVG %>% filter(codeplas %in% ID & meetreeks == "2022-2023"), c("ZS_105", "ZS_550") , paste("Zwevende stof (550 & 105°C) meetreeks 2022-2023", ID, "\n"), yas = "Meetwaarde (g/L)") +
-  scale_y_continuous(breaks = pretty_breaks(n = 10, min.n = 10))
-  print(figuur)
-  ggsave(plot = figuur,
-         filename = paste0("./exports/ZS550-105_2022_2023/", ID,"_ZS550_105_2022_2023", ".jpg"), width = 1080, height = 720, units = "px", scale = 3)
-}
-
 # Humuszuren (absorptie_440)
 data_TVG %>%
   filter(AquaComponent %in% "absorptie_440") %>%
@@ -1289,48 +1618,10 @@ data_TVG %>%
   summarise(chla_zhjgem = mean(ResultCalc, na.rm = TRUE)) %>%
   write.csv2(file = "./exports/chl_a_zhj_2022-23.csv")
 
-## boxplots chlorofyl
-vline_chla <- data.frame(
-  watertype = c("Aw-om", "Cb", "Czb", "Zm", "Zs"),
-  xintercept <- 10
-)
-
-data_TVG %>%
-  filter(AquaComponent == "chl_a" & meetreeks == "2022-2024") %>%
-  ggplot(aes(x = ResultCalc, y = codeplas, colour = watertype)) +
-  geom_boxplot() +
-  xlab("Chlorofyl a (µg/l)") +
-  facet_grid(watertype ~ ., scales = "free", space = "free_y") +
-  geom_vline(data = vline_chla, aes(xintercept = xintercept, colour = watertype), 
-             linetype = "solid", size = 1) +
-  scale_x_continuous(limits = c(0,200), breaks = pretty_breaks(n = 10))
-
-# chl_a, SD (WD) en absorptie_440
-## voor 2024
-locaties <- unique(data_TVG$codeplas[data_TVG$meetreeks == "2024"])
-
-for (ID in locaties) {
-  figuur <- maak_plot(data_TVG %>% filter(codeplas %in% ID & meetreeks == "2024") , c("chl_a", "SD_veld", "WD_veld", "absorptie_440", "ZS_105") , paste("Parameters helderheid meetreeks 2024", ID, "\n"), yas = "Meetwaarde (log10)") +
-  scale_y_log10()
-  print(figuur)
-  ggsave(plot = figuur,
-         filename = paste0("./exports/Helderheid2024/", ID,"_Helderheid_2024", ".jpg"), width = 1080, height = 720, units = "px", scale = 3)
-}
-
-## voor 2022-2023
-locaties <- unique(data_TVG$codeplas[data_TVG$meetreeks == "2022-2023"])
-
-for (ID in locaties) {
-  figuur <- maak_plot(data_TVG %>% filter(codeplas %in% ID & meetreeks == "2022-2023") , c("chl_a", "SD_veld", "WD_veld", "absorptie_440", "ZS_105") , paste("Parameters helderheid meetreeks 2022-2023", ID, "\n"), yas = "Meetwaarde (log10)") +
-  scale_y_log10()
-  print(figuur)
-  ggsave(plot = figuur,
-         filename = paste0("./exports/Helderheid2022_2023/", ID,"_Helderheid_2022_2023", ".jpg"), width = 1080, height = 720, units = "px", scale = 3)
-}
 ```
 
 
-# Zuurstofcondities
+## Zuurstofcondities
 ```{r}
 # concentratie
 data_TVG %>%
@@ -1343,22 +1634,6 @@ data_TVG %>%
   group_by(codeplas) %>%
   summarise(O2_10p = quantile(ResultCalc,probs = 0.1, na.rm = TRUE)) %>%
   write.csv2(file = "./exports/O2_conc_2022-23.csv")
-
-## boxplots zuurstofconcentratie
-vline_O2conc <- data.frame(
-  watertype = c("Aw-om", "Cb", "Czb", "Zm", "Zs"),
-  xintercept <- 6
-)
-
-data_TVG %>%
-  filter(AquaComponent == "O2_veld" & meetreeks == "2022-2024") %>%
-  ggplot(aes(x = ResultCalc, y = codeplas, colour = watertype)) +
-  geom_boxplot() +
-  xlab("Zuurstofconcentratie (mg/l)") +
-  facet_grid(watertype ~ ., scales = "free", space = "free_y") +
-  geom_vline(data = vline_O2conc, aes(xintercept = xintercept, colour = watertype), 
-             linetype = "solid", size = 1) +
-  scale_x_continuous(breaks = pretty_breaks(n = 10))
 
 # verzadiging
 data_TVG %>%
@@ -1373,25 +1648,9 @@ data_TVG %>%
   summarise(O2_verz_max = max(ResultCalc, na.rm = TRUE)) %>%
   write.csv2(file = "./exports/O2_verz_2022-23.csv")
 
-## boxplots zuurstofverzadiging
-vline_O2verz <- data.frame(
-  watertype = c("Aw-om", "Cb", "Czb", "Zm", "Zs"),
-  xintercept <- 120
-)
-
-data_TVG %>%
-  filter(AquaComponent == "O2verz" & meetreeks == "2022-2024") %>%
-  ggplot(aes(x = ResultCalc, y = codeplas, colour = watertype)) +
-  geom_boxplot() +
-  xlab("Zuurstofverzadiging (%)") +
-  facet_grid(watertype ~ ., scales = "free", space = "free_y") +
-  geom_vline(data = vline_O2verz, aes(xintercept = xintercept, colour = watertype), 
-             linetype = "solid", size = 1) +
-  scale_x_continuous(breaks = pretty_breaks(n = 10))
-
 ```
 
-# Temperatuur
+## Temperatuur
 ```{r}
 data_TVG %>%
   filter(AquaComponent %in% "T_veld") %>%
@@ -1413,7 +1672,7 @@ data_TVG %>%
 
 ```
 
-# Alkaliniteit, Natrium, Silicium, Calcium, Kalium, Magnesium
+## Alkaliniteit, Natrium, Silicium, Calcium, Kalium, Magnesium
 ```{r}
 # alkaliniteit
 data_TVG %>%
@@ -1433,25 +1692,6 @@ data_TVG %>%
             Alk_max = max(ResultCalc, na.rm = TRUE),
             Alk_bereik = paste(min(ResultCalc, na.rm = TRUE), "-", max(ResultCalc, na.rm = TRUE))) %>%
   write.csv2(file = "./exports/Alka_22-23.csv")
-
-## boxplots alkaliniteit
-vline_alk <- data.frame(
-  watertype = c("Aw-om", "Cb", "Czb", "Zm", "Zs"),
-  xinterceptmin = c(0.1, NA, 0.1, 0.1, 0.03),
-  xinterceptmax = c(1, NA, 1, 1, 0.1)
-)
-
-data_TVG %>%
-  filter(AquaComponent == "alkaliniteit" & meetreeks == "2022-2024") %>%
-  ggplot(aes(x = ResultCalc, y = codeplas, colour = watertype)) +
-  geom_boxplot() +
-  xlab("Alkaliniteit (meq/l)") +
-  facet_grid(watertype ~ ., scales = "free", space = "free_y") +
-  geom_vline(data = vline_alk, aes(xintercept = xinterceptmin, colour = watertype), 
-             linetype = "solid", size = 1) +
-  geom_vline(data = vline_alk, aes(xintercept = xinterceptmax, colour = watertype), 
-             linetype = "solid", size = 1) +
-  scale_x_continuous(breaks = pretty_breaks(n = 10))
 
 # Silicium
 data_TVG %>%
@@ -1522,7 +1762,7 @@ data_TVG %>%
 ```
 
 
-# Zoutparameters
+## Zoutparameters
 ```{r}
 # Geleidbaarheid
 data_TVG %>%
@@ -1625,7 +1865,7 @@ data_TVG %>%
 ```
 
 
-# Nutriënten
+## Nutriënten
 ```{r}
 # Totale Stikstof - TN & Totale Fosfor - TP
 data_TVG %>%
@@ -1650,58 +1890,6 @@ data_TVG %>%
   summarise(zhjgem = mean(ResultCalc, na.rm = TRUE)) %>%
   write.csv2(file = "./exports/TN_TP_zhj_22-23.csv")
 
-## boxplots TN
-vline_TN <- data.frame(
-  watertype = c("Aw-om", "Cb", "Czb", "Zm", "Zs"),
-  xintercept = c(1, 1.3, 1.3, 1.3, 1.3)
-)
-
-data_TVG %>%
-  filter(AquaComponent == "TN" & meetreeks == "2022-2024") %>%
-  ggplot(aes(x = ResultCalc, y = codeplas, colour = watertype)) +
-  geom_boxplot() +
-  xlab("Totale stikstof (mg N/l)") +
-  facet_grid(watertype ~ ., scales = "free", space = "free_y") +
-  geom_vline(data = vline_TN, aes(xintercept = xintercept, colour = watertype), 
-             linetype = "solid", size = 1) +
-  scale_x_continuous(limits = c(0,10), breaks = pretty_breaks(n = 10))
-
-data_TVG %>%
-  filter(AquaComponent == "TN" & meetreeks == "2022-2024" & seizoen == "zomer") %>%
-  ggplot(aes(x = ResultCalc, y = codeplas, colour = watertype)) +
-  geom_boxplot() +
-  xlab("Totale stikstof (mg N/l)") +
-  facet_grid(watertype ~ ., scales = "free", space = "free_y") +
-  geom_vline(data = vline_TN, aes(xintercept = xintercept, colour = watertype), 
-             linetype = "solid", size = 1) +
-  scale_x_continuous(limits = c(0,10), breaks = pretty_breaks(n = 10))
-
-## boxplots TP
-vline_TP <- data.frame(
-  watertype = c("Aw-om", "Cb", "Czb", "Zm", "Zs"),
-  xintercept = c(0.04, 0.04, 0.03, 0.03, 0.03)
-)
-
-data_TVG %>%
-  filter(AquaComponent == "TP" & meetreeks == "2022-2024") %>%
-  ggplot(aes(x = ResultCalc, y = codeplas, colour = watertype)) +
-  geom_boxplot() +
-  xlab("Totale fosfor (mg P/l)") +
-  facet_grid(watertype ~ ., scales = "free", space = "free_y") +
-  geom_vline(data = vline_TP, aes(xintercept = xintercept, colour = watertype), 
-             linetype = "solid", size = 1) +
-  scale_x_continuous(limits = c(0,1), breaks = pretty_breaks(n = 10))
-
-data_TVG %>%
-  filter(AquaComponent == "TP" & meetreeks == "2022-2024" & seizoen == "zomer") %>%
-  ggplot(aes(x = ResultCalc, y = codeplas, colour = watertype)) +
-  geom_boxplot() +
-  xlab("Totale fosfor (mg P/l)") +
-  facet_grid(watertype ~ ., scales = "free", space = "free_y") +
-  geom_vline(data = vline_TP, aes(xintercept = xintercept, colour = watertype), 
-             linetype = "solid", size = 1) +
-  scale_x_continuous(limits = c(0,1), breaks = pretty_breaks(n = 10))
-
 # NO3-N
 data_TVG %>%
   filter(AquaComponent %in% "NO3_N" & meetreeks == "2022-2024" & seizoen == "zomer") %>%
@@ -1717,15 +1905,6 @@ data_TVG %>%
   summarise(NO3_N_zhj = mean(ResultCalc)) %>%
   write.csv2(file = "./exports/NO3_N_22-23.csv")
 
-## boxplots NO3_N
-data_TVG %>%
-  filter(AquaComponent == "NO3_N" & meetreeks == "2022-2024") %>%
-  ggplot(aes(x = ResultCalc, y = codeplas, colour = watertype)) +
-  geom_boxplot() +
-  xlab("Nitraat-stikstof (mg N/l)") +
-  facet_grid(watertype ~ ., scales = "free", space = "free_y") +
-  scale_x_continuous(limits = c(0,2), breaks = pretty_breaks(n = 10))
-
 # NO2-N
 data_TVG %>%
   filter(AquaComponent %in% "NO2_N" & meetreeks == "2022-2024" & seizoen == "zomer") %>%
@@ -1740,23 +1919,6 @@ data_TVG %>%
   group_by(codeplas) %>%
   summarise(NO2_N_zhj = mean(ResultCalc)) %>%
   write.csv2(file = "./exports/NO2_N_22-23.csv")
-
-## boxplots NO2_N
-vline_NO2_N <- data.frame(
-  watertype = c("Aw-om", "Cb", "Czb", "Zm", "Zs"),
-  xintercept <- 0.2
-)
-
-data_TVG %>%
-  filter(AquaComponent == "NO2_N" & meetreeks == "2022-2024") %>%
-  ggplot(aes(x = ResultCalc, y = codeplas, colour = watertype)) +
-  geom_boxplot() +
-  xlab("Nitriet-stikstof (mg N/l)") +
-  facet_grid(watertype ~ ., scales = "free", space = "free_y") +
-  geom_vline(data = vline_NO2_N, aes(xintercept = xintercept, colour = watertype), 
-             linetype = "solid", size = 1) +
-  scale_x_continuous(breaks = pretty_breaks(n = 10))
-
 
 ## Van Calster NO2_N gemiddelde & maximum
 data_TVG %>%
@@ -1788,15 +1950,6 @@ data_TVG %>%
   summarise(NH4_N_zhj = mean(ResultCalc)) %>%
   write.csv2(file = "./exports/NH4_N_22-23.csv")
 
-## boxplots NH4_N
-data_TVG %>%
-  filter(AquaComponent == "NH4_N" & meetreeks == "2022-2024") %>%
-  ggplot(aes(x = ResultCalc, y = codeplas, colour = watertype)) +
-  geom_boxplot() +
-  xlab("Ammonium-stikstof (mg N/l)") +
-  facet_grid(watertype ~ ., scales = "free", space = "free_y") +
-  scale_x_continuous(breaks = pretty_breaks(n = 10))
-
 # PO4-P
 data_TVG %>%
   filter(AquaComponent %in% "PO4_P" & meetreeks == "2022-2024" & seizoen == "zomer") %>%
@@ -1812,40 +1965,11 @@ data_TVG %>%
   summarise(PO4_P_zhj = mean(ResultCalc)) %>%
   write.csv2(file = "./exports/PO4_P_22-23.csv")
 
-## PO4_P boxplots
-data_TVG %>%
-  filter(AquaComponent == "PO4_P" & meetreeks == "2022-2024") %>%
-  ggplot(aes(x = ResultCalc, y = codeplas, colour = watertype)) +
-  geom_boxplot() +
-  xlab("Orthofosfaat PO4_P (mg P/l)") +
-  facet_grid(watertype ~ ., scales = "free", space = "free_y") +
-  scale_x_continuous(breaks = pretty_breaks(n = 10))
 ```
 
-# Anorganische en organische stikstof
-```{r}
-# voeg anorganische stikstof toe als variabele in tabel (N_anorg = NH4_N + NO3_N + NO2_N)
-N_anorg <- data_TVG %>% group_by(codeplas, FieldSamplingDate) %>% 
-  filter(AquaComponent %in% c("NH4_N", "NO3_N", "NO2_N")) %>% 
-  summarise(N_anorg = sum(ResultCalc))
-N_anorg <- N_anorg %>% 
-  rename(ResultCalc = N_anorg)
-N_anorg$label <- "N_anorg (mg N/l)"
-N_anorg$AquaComponent <- "N_anorg"
-N_anorg$AquaUnit <- "mg N/l"
-N_anorg$Component <- "N_anorg"
-N_anorg <- N_anorg %>%
-  mutate(meetreeks = case_when(
-           FieldSamplingDate < as.Date("2020-01-01") ~ "<2020",TRUE ~ "2022-2024"), 
-         seizoen = case_when(as.numeric(
-           format(FieldSamplingDate, "%m")) %in% c(4:9) ~ "zomer",
-           TRUE ~ "winter"))
-data_met_N_anorg <- bind_rows(data_TVG, N_anorg)
-data_met_N_anorg <- data_met_N_anorg %>%
-  left_join(data_locaties[,c(2,7)], by = "codeplas")
-data_met_N_anorg <- data_met_N_anorg %>% 
-  rename(watertype = watertype.y)
+## Anorganische en organische stikstof
 
+```{r}
 # zomerhalfjaargemiddelde
 data_met_N_anorg %>%
   filter(AquaComponent %in% "N_anorg") %>%
@@ -1867,66 +1991,10 @@ data_met_N_anorg %>%
   group_by(codeplas) %>%
   summarise(N_anorg_max = max(ResultCalc, na.rm = TRUE)) %>%
   write.csv2(file = "./exports/N_anorg_max2022-23.csv")
-
-write.csv2(data_met_N_anorg, file = "./data/Data_Kalmthout_met_Nanorg.csv")
-
-## boxplots N_anorg (NH4_N + NO3_N + NO2_N)
-vline_N_anorg <- data.frame(
-  watertype = c("Aw-om", "Cb", "Czb", "Zm", "Zs"),
-  xintercept <- 0.14
-)
-
-data_met_N_anorg %>%
-  filter(AquaComponent == "N_anorg" & meetreeks == "2022-2024") %>%
-  ggplot(aes(x = ResultCalc, y = codeplas, colour = watertype)) +
-  geom_boxplot() +
-  xlab("Anorganische stikstof (mg N/l)") +
-  facet_grid(watertype ~ ., scales = "free", space = "free_y") +
-  geom_vline(data = vline_N_anorg, aes(xintercept = xintercept, colour = watertype), 
-             linetype = "solid", size = 1) +
-  scale_x_continuous(limits = c(0,6), breaks = pretty_breaks(n = 10))
-
-
-# TN, Anorg N
-locaties <- unique(data_met_N_anorg$codeplas[data_met_N_anorg$meetreeks == "2024"])
-
-for (ID in locaties) {
-  # orden van klein naar groot
-  data_met_N_anorg$label <- factor(data_met_N_anorg$label, unique(data_met_N_anorg[order(data_met_N_anorg$ResultCalc, decreasing = T), "label"]))
-  figuur <- maak_plot_area(data_met_N_anorg %>% filter(codeplas %in% ID & meetreeks == "2024") , c("N_anorg", "TN") , paste("Organische stikstof meetreeks 2024", ID, "\n"), yas = "Meetwaarde (mg N/L)") +
-  scale_y_continuous(breaks = pretty_breaks(n = 10, min.n = 10))
-  print(figuur)
-  ggsave(plot = figuur,
-         filename = paste0("./exports/N_org_2024/", ID,"_N_org_2024", ".jpg"), width = 1080, height = 720, units = "px", scale = 3)
-}
-
-# N_anorg = NH4_N, NO3_N, NO2_N
-locaties <- unique(data_met_N_anorg$codeplas[data_met_N_anorg$meetreeks == "2024"])
-for (ID in locaties) {
-  # subset voor locatie
-  N_anorg_ID <- data_TVG %>%
-  filter(AquaComponent %in% c("NH4_N", "NO3_N", "NO2_N") & codeplas == ID & meetreeks == "2024")
-  
-  # orden van klein naar groot
-  N_anorg_ID$label <- factor(N_anorg_ID$label, unique(N_anorg_ID[order(N_anorg_ID$ResultCalc, decreasing = T), "label"]))
-  # plot figuur
-  figuur <- N_anorg_ID %>%
-    ggplot(aes(x = FieldSamplingDate, y = ResultCalc, fill = label)) +
-    geom_area(position = "identity", alpha = 0.6) +
-    scale_x_date(date_breaks = "1 month", date_labels = "%b-%Y") +
-    labs(title = paste("Anorganische stikstof", ID ,"(N_anorg = NH4_N + NO3_N + NO2_N)\n")) +
-    xlab("Datum staalname") + 
-    ylab("Meetwaarde (mg N/L)")  + 
-    scale_fill_discrete("Variabelen") + scale_y_continuous(breaks = pretty_breaks(n = 10, min.n = 10))
-  print(figuur)
-  ggsave(plot = figuur,
-         filename = paste0("./exports/N_anorg_2024/", ID,"_N_anorg_2024", ".jpg"), width = 1080, height = 720, units = "px", scale = 3)
-}
-
 ```
 
 
-# Maucha-diagram
+# MAUCHA
 
 ## originele code Maucha (per plas figuur opslaan)
 ```{r}
@@ -2111,7 +2179,7 @@ maucha(datamauchawide)
 ```
 
 
-# IR-EGV plot
+# IR-EGV
 ## referentie-punten
 ```{r}
 ref_punten <- data.frame(
