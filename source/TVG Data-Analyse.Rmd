@@ -871,6 +871,43 @@ generate_multiple_plots <- function(codeplas_values, aqua_component, watertype_t
   return(plots)
 }
 
+# voor data_met_N_anorg
+generate_plot_N_anorg <- function(codeplas_value, aqua_component, watertype_thresholds, y_label = NULL) {
+  filtered_data <- data_met_N_anorg %>%
+    filter(AquaComponent == aqua_component & meetreeks == "2022-2024" & codeplas == codeplas_value)
+  
+  n_results <- nrow(filtered_data)
+  interval <- if(n_results > 12) "2 months" else "1 month"
+  
+  watertype <- unique(filtered_data$watertype)
+  threshold <- watertype_thresholds[[watertype]] %||% NA # Use NA if not found
+  
+  # If y_label is not provided, use "ResultCalc" as default
+  y_axis_label <- if(is.null(y_label)) "ResultCalc" else y_label
+  
+  plot <- filtered_data %>%
+    ggplot(aes(x = FieldSamplingDate, y = ResultCalc)) +
+    scale_x_date(date_breaks = interval, date_labels = "%m/%y") +
+    scale_y_continuous(breaks = pretty_breaks(n = 10)) +
+    geom_line(linewidth = 1, color = "orange") +
+    geom_point(color = "orange") +
+    geom_hline(yintercept = threshold, linetype = "dashed", color = "black", size = 1) +
+    labs(x = "Datum staalname",
+         y = y_axis_label) +
+  theme(
+    axis.title = element_text(size = 16),
+    axis.text = element_text(size = 14)
+  )
+    
+  
+  return(plot)
+}
+
+generate_multiple_plots_N_anorg <- function(codeplas_values, aqua_component, watertype_thresholds, y_label = NULL) {
+  plots <- map(codeplas_values, ~generate_plot_N_anorg(.x, aqua_component, watertype_thresholds, y_label))
+  names(plots) <- codeplas_values
+  return(plots)
+}
 ```
 
 ### voor 2020
@@ -1245,6 +1282,19 @@ grenswaarden_SO4 <- list(
 plots_SO4 <- generate_multiple_plots(reeks_2022_2024, "SO4", grenswaarden_SO4, "Sulfaat (mg/l)")
 walk2(plots_SO4, names(plots_SO4),
       ~ggsave(filename = paste0("./exports/SO4/", .y, "_", "SO4", ".png"), plot = .x, width = 10, height = 6))
+
+# Anorganische stikstof
+grenswaarden_Nanorg <- list(
+  "Aw-om" = 0.14, 
+  "Cb" = 0.14, 
+  "Czb" = 0.14, 
+  "Zm" = 0.14, 
+  "Zs" = 0.14
+)
+
+plots_N_anorg <- generate_multiple_plots_N_anorg(reeks_2022_2024, "N_anorg", grenswaarden_Nanorg, "Anorganische stikstof (mg N/l)")
+walk2(plots_N_anorg, names(plots_N_anorg),
+      ~ggsave(filename = paste0("./exports/N_anorg/", .y, "_", "N_anorg", ".png"), plot = .x, width = 10, height = 6))
 
 # Absorptie 440 (geen norm)
 plots_abs <- generate_multiple_plots_nohline(reeks_2022_2024, "absorptie_440", "Absorptie (ABS)")
