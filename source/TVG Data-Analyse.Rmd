@@ -907,9 +907,11 @@ generate_multiple_plots_N_anorg <- function(codeplas_values, aqua_component, wat
   names(plots) <- codeplas_values
   return(plots)
 }
+
+
 ```
 
-### voor 2020
+### voor <2020
 ```{r}
 generate_plot_2020 <- function(codeplas_value, aqua_component, watertype_thresholds, y_label = NULL) {
   filtered_data <- data_TVG %>%
@@ -1026,7 +1028,7 @@ generate_multiple_plots_2020_2 <- function(codeplas_values, aqua_component1, aqu
   return(plots)
 }
 
-# 2 vairabelen zonder normgrenzen
+# 2 variabelen zonder normgrenzen
 generate_plot_2020_2_nohline <- function(codeplas_value, aqua_component1, aqua_component2, y_label = NULL) {
   filtered_data1 <- data_TVG %>%
     filter(AquaComponent == aqua_component1 & meetreeks == "<2020" & codeplas == codeplas_value)
@@ -1065,9 +1067,48 @@ generate_multiple_plots_2020_2_nohline <- function(codeplas_values, aqua_compone
   names(plots) <- codeplas_values
   return(plots)
 }
+
+
+# voor data_met_N_anorg
+generate_plot_N_anorg_2020 <- function(codeplas_value, aqua_component, watertype_thresholds, y_label = NULL) {
+  filtered_data <- data_met_N_anorg %>%
+    filter(AquaComponent == aqua_component & meetreeks == "<2020" & codeplas == codeplas_value)
+  
+  n_results <- nrow(filtered_data)
+  interval <- if(n_results > 12) "2 months" else "1 month"
+  
+  watertype <- unique(filtered_data$watertype)
+  threshold <- watertype_thresholds[[watertype]] %||% NA # Use NA if not found
+  
+  # If y_label is not provided, use "ResultCalc" as default
+  y_axis_label <- if(is.null(y_label)) "ResultCalc" else y_label
+  
+  plot <- filtered_data %>%
+    ggplot(aes(x = FieldSamplingDate, y = ResultCalc)) +
+    scale_x_date(date_breaks = interval, date_labels = "%m/%y") +
+    scale_y_continuous(breaks = pretty_breaks(n = 10)) +
+    geom_line(linewidth = 1, color = "orange") +
+    geom_point(color = "orange") +
+    geom_hline(yintercept = threshold, linetype = "dashed", color = "black", size = 1) +
+    labs(x = "Datum staalname",
+         y = y_axis_label) +
+  theme(
+    axis.title = element_text(size = 16),
+    axis.text = element_text(size = 14)
+  )
+    
+  
+  return(plot)
+}
+
+generate_multiple_plots_N_anorg_2020 <- function(codeplas_values, aqua_component, watertype_thresholds, y_label = NULL) {
+  plots <- map(codeplas_values, ~generate_plot_N_anorg_2020(.x, aqua_component, watertype_thresholds, y_label))
+  names(plots) <- codeplas_values
+  return(plots)
+}
 ```
 
-### figuren 2020
+### figuren <2020
 ```{r}
 # Chloride
 grenswaarden_Cl <- list(
@@ -1094,8 +1135,133 @@ grenswaarden_EGV <- list(
 plots_EGV <- generate_multiple_plots_2020(reeks_2020, "EGV25_veld", grenswaarden_EGV, "Elektrische geleidbaarheid (µS/cm)")
 walk2(plots_EGV, names(plots_EGV),
       ~ggsave(filename = paste0("./exports/Elektrische_geleidbaarheid2020/", .y, "_", "EGV2020", ".png"), plot = .x, width = 10, height = 6))
+
+# Temperatuur
+grenswaarden_Temp <- list(
+  "Aw-om" = 25, 
+  "Cb" = 25, 
+  "Czb" = 25, 
+  "Zm" = 25, 
+  "Zs" = 25
+)
+
+plots_Temp <- generate_multiple_plots_2020(reeks_2020, "T_veld", grenswaarden_Temp, "Temperatuur (°C)")
+walk2(plots_Temp, names(plots_Temp),
+      ~ggsave(filename = paste0("./exports/Temperatuur2020/", .y, "_", "Temp2020", ".png"), plot = .x, width = 10, height = 6))
+
+# Zuurstofverzadiging
+grenswaarden_O2verz <- list(
+  "Aw-om" = 120, 
+  "Cb" = 120, 
+  "Czb" = 120, 
+  "Zm" = 120, 
+  "Zs" = 120
+)
+
+plots_O2v <- generate_multiple_plots_2020(reeks_2020, "O2verz", grenswaarden_O2verz, "Zuurstofverzadiging (%)")
+walk2(plots_O2v, names(plots_O2v),
+      ~ggsave(filename = paste0("./exports/Zuurstofverzadiging2020/", .y, "_", "O2verz2020", ".png"), plot = .x, width = 10, height = 6))
+
+# Zuurstofconcentratie
+grenswaarden_O2conc <- list(
+  "Aw-om" = 6, 
+  "Cb" = 6, 
+  "Czb" = 6, 
+  "Zm" = 6, 
+  "Zs" = 6
+)
+
+plots_O2c <- generate_multiple_plots_2020(reeks_2020, "O2_veld", grenswaarden_O2conc, "Zuurstofconcentratie (mg/l)")
+walk2(plots_O2c, names(plots_O2c),
+      ~ggsave(filename = paste0("./exports/Zuurstofconcentratie2020/", .y, "_", "O2conc2020", ".png"), plot = .x, width = 10, height = 6))
+
+
+# Chlorofyl-a
+grenswaarden_chla <- list(
+  "Aw-om" = 10, 
+  "Cb" = 10, 
+  "Czb" = 10, 
+  "Zm" = 10, 
+  "Zs" = 10
+)
+
+plots_chla_2020 <- generate_multiple_plots_2020(reeks_2020, "chl_a", grenswaarden_chla, "Chlorofyl_a (µg/l)")
+walk2(plots_chla_2020, names(plots_chla_2020),
+      ~ggsave(filename = paste0("./exports/Chlorofyl_a2020/", .y, "_", "chl_a2020", ".png"), plot = .x, width = 10, height = 6))
+
+# Sulfaat - SO4
+grenswaarden_SO4 <- list(
+  "Aw-om" = 100, 
+  "Cb" = 50, 
+  "Czb" = 40, 
+  "Zm" = 15, 
+  "Zs" = 15
+)
+
+plots_SO4_2020 <- generate_multiple_plots_2020(reeks_2020, "SO4", grenswaarden_SO4, "Sulfaat (mg/l)")
+walk2(plots_SO4_2020, names(plots_SO4_2020),
+      ~ggsave(filename = paste0("./exports/SO4_2020/", .y, "_", "SO4_2020", ".png"), plot = .x, width = 10, height = 6))
+
+# Alkaliniteit
+plots_alk_2020 <- generate_multiple_plots_2020_nohline(reeks_2020, "alkaliniteit", "Alkaliniteit (meq/l)")
+walk2(plots_alk_2020, names(plots_alk_2020),
+      ~ggsave(filename = paste0("./exports/alkaliniteit2020/", .y, "_", "abs2020", ".png"), plot = .x, width = 10, height = 6))
+
+# TN - Totale stikstof
+grenswaarden_TN <- list(
+  "Aw-om" = 1, 
+  "Cb" = 1.3, 
+  "Czb" = 1.3, 
+  "Zm" = 1.3, 
+  "Zs" = 1.3
+)
+## geen data voor verschillende locaties voor TN
+plots_TN_2020 <- generate_multiple_plots_2020(c("ANTTUR0296", "ANTTUR0094", "ANTTUR0082", "ANTRAV0293", "ANTRAV0230", "ANTRAV0052", "ANTOTH0324", "ANTOTH0306"), "TN", grenswaarden_TN, "Totale stikstof (mg N/l)")
+walk2(plots_TN_2020, names(plots_TN_2020),
+      ~ggsave(filename = paste0("./exports/TN2020/", .y, "_", "TN2020", ".png"), plot = .x, width = 10, height = 6))
+
+
+# TP - Totale fosfor
+grenswaarden_TP <- list(
+  "Aw-om" = 0.04, 
+  "Cb" = 0.04, 
+  "Czb" = 0.03, 
+  "Zm" = 0.03, 
+  "Zs" = 0.03
+)
+
+plots_TP_2020 <- generate_multiple_plots_2020(reeks_2020, "TP", grenswaarden_TP, "Totale fosfor (mg P/l)")
+walk2(plots_TP_2020, names(plots_TP_2020),
+      ~ggsave(filename = paste0("./exports/TP2020/", .y, "_", "TP2020", ".png"), plot = .x, width = 10, height = 6))
+
+
+# Absorptie 440 (geen norm)
+plots_abs_2020 <- generate_multiple_plots_2020_nohline(reeks_2020, "absorptie_440", "Absorptie (ABS)")
+walk2(plots_abs_2020, names(plots_abs_2020),
+      ~ggsave(filename = paste0("./exports/absorptie2020/", .y, "_", "abs2020", ".png"), plot = .x, width = 10, height = 6))
+
+# Fosfaat - fosfor PO4_P
+plots_PO4_P_2020 <- generate_multiple_plots_2020_nohline(reeks_2020, "PO4_P", "PO4-P (mg P/l)")
+walk2(plots_PO4_P_2020, names(plots_PO4_P_2020),
+      ~ggsave(filename = paste0("./exports/PO4_P2020/", .y, "_", "PO4_P2020", ".png"), plot = .x, width = 10, height = 6))
+
 ```
 
+#### Anorganische stikstof
+```{r}
+# Anorganische stikstof
+grenswaarden_Nanorg <- list(
+  "Aw-om" = 0.14, 
+  "Cb" = 0.14, 
+  "Czb" = 0.14, 
+  "Zm" = 0.14, 
+  "Zs" = 0.14
+)
+
+plots_N_anorg <- generate_multiple_plots_2020_Nanorg(reeks_2022_2024, "N_anorg", grenswaarden_Nanorg,  "Anorganische stikstof (mg N/l)")
+walk2(plots_N_anorg, names(plots_N_anorg),
+      ~ggsave(filename = paste0("./exports/N_anorg2020/", .y, "_", "N_anorg2020", ".png"), plot = .x, width = 10, height = 6))
+```
 
 
 ## functie voor tijdsreeksen zonder grenswaarde
@@ -1495,6 +1661,58 @@ generate_multiple_plots_pH <- function(codeplas_values, aqua_component, watertyp
   return(plots)
 }
 
+# 2020
+generate_plot_2020_pH <- function(codeplas_value, aqua_component, watertype_thresholds, y_label = NULL) {
+  filtered_data <- data_TVG %>%
+    filter(AquaComponent == aqua_component & meetreeks == "<2020" & codeplas == codeplas_value)
+  
+  n_results <- nrow(filtered_data)
+  interval <- if(n_results > 12) "2 months" else "1 month"
+  
+  watertype <- unique(filtered_data$watertype)
+  
+  # Check if watertype exists in the thresholds and get min/max values
+  if (watertype %in% names(watertype_thresholds)) {
+    threshold_min <- watertype_thresholds[[watertype]]$min
+    threshold_max <- watertype_thresholds[[watertype]]$max
+  } else {
+    threshold_min <- NA
+    threshold_max <- NA
+  }
+  
+  # If y_label is not provided, use "ResultCalc" as default
+  y_axis_label <- if(is.null(y_label)) "ResultCalc" else y_label
+  
+  plot <- filtered_data %>%
+    ggplot(aes(x = FieldSamplingDate, y = ResultCalc)) +
+    scale_x_date(date_breaks = interval, date_labels = "%m/%y") +
+    scale_y_continuous(breaks = pretty_breaks(n = 10)) +
+    geom_line(linewidth = 1, color = "orange") +
+    geom_point(color = "orange") +
+    labs(x = "Datum staalname",
+         y = y_axis_label) +
+  theme(
+    axis.title = element_text(size = 16),
+    axis.text = element_text(size = 14)
+  )
+  
+  # Add threshold lines only if they are not NA
+  if (!is.na(threshold_min)) {
+    plot <- plot + geom_hline(yintercept = threshold_min, linetype = "dashed", color = "black", size = 1)
+  }
+  if (!is.na(threshold_max)) {
+    plot <- plot + geom_hline(yintercept = threshold_max, linetype = "dashed", color = "black", size = 1)
+  }
+  
+  return(plot)
+}
+
+generate_multiple_plots_2020_pH <- function(codeplas_values, aqua_component, watertype_thresholds, y_label = NULL) {
+  plots <- map(codeplas_values, ~generate_plot_2020_pH(.x, aqua_component, watertype_thresholds, y_label))
+  names(plots) <- codeplas_values
+  return(plots)
+}
+
 # pH thresholds
 grenswaarden_pH <- list(
   "Aw-om" = list(min = 6.5, max = 8.5),
@@ -1507,6 +1725,11 @@ grenswaarden_pH <- list(
 plots_pH <- generate_multiple_plots_pH(reeks_2022_2024, "pH_veld", grenswaarden_pH, "pH")
 walk2(plots_pH, names(plots_pH),
       ~ggsave(filename = paste0("./exports/pH/", .y, "_", "pH", ".png"), plot = .x, width = 10, height = 6))
+
+plots_pH_2020 <- generate_multiple_plots_2020_pH(reeks_2020, "pH_veld", grenswaarden_pH, "pH")
+walk2(plots_pH_2020, names(plots_pH_2020),
+      ~ggsave(filename = paste0("./exports/pH2020/", .y, "_", "pH2020", ".png"), plot = .x, width = 10, height = 6))
+
 ```
 
 ## aparte code voor WD en SD (2 variabelen in 1 plot)
@@ -1523,6 +1746,11 @@ grenswaarden_SD <- list(
 plots_SD_WD <- generate_multiple_plots_2(reeks_2022_2024, "SD_veld", "WD_veld", grenswaarden_SD, "Meetwaarde (m)")
 walk2(plots_SD_WD, names(plots_SD_WD),
       ~ggsave(filename = paste0("./exports/SD_WD/", .y, "_", "SD_WD", ".png"), plot = .x, width = 10, height = 6))
+
+plot_SD_WD_2020 <- generate_multiple_plots_2020_2(reeks_2020, "SD_veld", "WD_veld", grenswaarden_SD, "Meetwaarde (m)")
+walk2(plot_SD_WD_2020, names(plot_SD_WD_2020),
+      ~ggsave(filename = paste0("./exports/SD_WD2020/", .y, "_", "SD_WD2020", ".png"), plot = .x, width = 10, height = 6))
+
 
 grenswaarden_ZS105 <- list(
   "Aw-om" = 2.5, 
@@ -1578,6 +1806,41 @@ generate_multiple_plots_Nanorg <- function(codeplas_values, aqua_components, y_l
   return(plots)
 }
 
+# voor <2020
+generate_plot_2020_Nanorg <- function(codeplas_value, aqua_components, y_label = NULL) {
+  filtered_data <- data_TVG %>%
+    filter(AquaComponent %in% aqua_components & meetreeks == "<2020" & codeplas == codeplas_value)
+  
+  n_results <- nrow(filtered_data)
+  interval <- if(n_results > 12) "2 months" else "1 month"
+  
+  # If y_label is not provided, use "ResultCalc" as default
+  y_axis_label <- if(is.null(y_label)) "ResultCalc" else y_label
+  
+  plot <- filtered_data %>%
+    ggplot(aes(x = FieldSamplingDate, y = ResultCalc, fill = AquaComponent)) +
+    geom_area(position = "identity", alpha = 0.6, color = "black", size = 0.5) +
+    scale_x_date(date_breaks = interval, date_labels = "%m/%y") +
+    scale_y_continuous(breaks = pretty_breaks(n = 10)) +
+    scale_fill_brewer(palette = "Set2") +
+    labs(x = "Datum staalname",
+         y = y_axis_label) +
+    theme(
+      axis.title = element_text(size = 16),
+      axis.text = element_text(size = 14),
+      legend.position = "bottom",
+      legend.title = element_blank()
+    )
+  
+  return(plot)
+}
+
+generate_multiple_plots_2020_Nanorg <- function(codeplas_values, aqua_components, y_label = NULL) {
+  plots <- map(codeplas_values, ~generate_plot_2020_Nanorg(.x, aqua_components, y_label))
+  names(plots) <- codeplas_values
+  return(plots)
+}
+
 # met log-transformatie
 generate_plot_Nanorglog <- function(codeplas_value, aqua_components, y_label = NULL) {
   filtered_data <- data_TVG %>%
@@ -1610,21 +1873,70 @@ generate_plot_Nanorglog <- function(codeplas_value, aqua_components, y_label = N
   return(plot)
 }
 
-
-
 generate_multiple_plots_Nanorglog <- function(codeplas_values, aqua_components, y_label = NULL) {
   plots <- map(codeplas_values, ~generate_plot_Nanorglog(.x, aqua_components, y_label))
   names(plots) <- codeplas_values
   return(plots)
 }
 
+# voor < 2020 logaritmisch
+generate_plot_2020_Nanorglog <- function(codeplas_value, aqua_components, y_label = NULL) {
+  filtered_data <- data_TVG %>%
+    filter(AquaComponent %in% aqua_components & meetreeks == "<2020" & codeplas == codeplas_value) %>%
+    mutate(log_ResultCalc = log10(pmax(ResultCalc, 1e-10)))  # Avoid log(0)
+  
+  n_results <- nrow(filtered_data)
+  interval <- if(n_results > 12) "2 months" else "1 month"
+  
+  y_axis_label <- if(is.null(y_label)) "log10(ResultCalc)" else y_label
+  
+  plot <- filtered_data %>%
+    ggplot(aes(x = FieldSamplingDate, y = log_ResultCalc, fill = AquaComponent, color = AquaComponent)) +
+    geom_ribbon(aes(ymin = min(log_ResultCalc), ymax = log_ResultCalc), alpha = 0.6) +
+    geom_line(size = 0.5) +
+    scale_x_date(date_breaks = interval, date_labels = "%m/%y") +
+    scale_y_continuous(breaks = pretty_breaks(n = 10),
+                       labels = function(x) sprintf("10^%.0f", x),
+                       limits = c(NA, NA)) +  # Allow ggplot to set appropriate limits
+    scale_fill_brewer(palette = "Set2") +
+    scale_color_brewer(palette = "Set2") +
+    labs(x = "Datum staalname", y = y_axis_label) +
+    theme(
+      axis.title = element_text(size = 16),
+      axis.text = element_text(size = 14),
+      legend.position = "bottom",
+      legend.title = element_blank()
+    )
+  
+  return(plot)
+}
+
+
+
+generate_multiple_plots_2020_Nanorglog <- function(codeplas_values, aqua_components, y_label = NULL) {
+  plots <- map(codeplas_values, ~generate_plot_2020_Nanorglog(.x, aqua_components, y_label))
+  names(plots) <- codeplas_values
+  return(plots)
+}
+
+
+# 2022-2024
 plots_N_anorg <- generate_multiple_plots_Nanorg(reeks_2022_2024, c("NH4_N", "NO3_N", "NO2_N"), "mg N/l")
 walk2(plots_N_anorg, names(plots_N_anorg),
-      ~ggsave(filename = paste0("./exports/N_anorg/", .y, "_", "N_anorg", ".png"), plot = .x, width = 10, height = 6))
+      ~ggsave(filename = paste0("./exports/NH4_N+NO3_N+NO2_N/", .y, "_", "N_anorg", ".png"), plot = .x, width = 10, height = 6))
+# < 2020
+plots_N_anorg_2020 <- generate_multiple_plots_2020_Nanorg(reeks_2020, c("NH4_N", "NO3_N", "NO2_N"), "mg N/l")
+walk2(plots_N_anorg_2020, names(plots_N_anorg_2020),
+      ~ggsave(filename = paste0("./exports/NH4_N+NO3_N+NO2_N2020/", .y, "_", "N_anorg2020", ".png"), plot = .x, width = 10, height = 6))
 
 plots_N_anorg_log <- generate_multiple_plots_Nanorglog(reeks_2022_2024, c("NH4_N", "NO3_N", "NO2_N"), "log10 (mg N/l)")
 walk2(plots_N_anorg_log, names(plots_N_anorg_log),
-      ~ggsave(filename = paste0("./exports/N_anorg_log/", .y, "_", "N_anorg_log", ".png"), plot = .x, width = 10, height = 6))
+      ~ggsave(filename = paste0("./exports/NH4_N+NO3_N+NO2_N_log/", .y, "_", "N_anorg_log", ".png"), plot = .x, width = 10, height = 6))
+
+plots_N_anorg_log_2020 <- generate_multiple_plots_2020_Nanorglog(reeks_2020, c("NH4_N", "NO3_N", "NO2_N"), "log10 (mg N/l)")
+walk2(plots_N_anorg_log_2020, names(plots_N_anorg_log_2020),
+      ~ggsave(filename = paste0("./exports/NH4_N+NO3_N+NO2_N_log2020/", .y, "_", "N_anorg_log2020", ".png"), plot = .x, width = 10, height = 6))
+
 ```
 
 ## aparte code N_organisch (TN - Nanorg)
@@ -1664,10 +1976,51 @@ generate_multiple_plots_Norg <- function(codeplas_values, aqua_components, y_lab
   return(plots)
 }
 
+#<2020
+generate_plot_Norg_2020 <- function(codeplas_value, aqua_components, y_label = NULL) {
+  filtered_data <- data_met_N_anorg %>%
+    filter(AquaComponent %in% aqua_components & meetreeks == "<2020" & codeplas == codeplas_value) %>%
+    mutate(AquaComponent = factor(AquaComponent, levels = c("TN", "N_anorg")))  # Set order
+  
+  n_results <- nrow(filtered_data)
+  interval <- if(n_results > 12) "2 months" else "1 month"
+  
+  y_axis_label <- if(is.null(y_label)) "ResultCalc" else y_label
+  
+  plot <- filtered_data %>%
+    ggplot(aes(x = FieldSamplingDate, y = ResultCalc, fill = AquaComponent)) +
+    geom_area(position = "identity", alpha = 0.6) +
+    geom_line(aes(color = AquaComponent), size = 1) +  # Add lines
+    scale_x_date(date_breaks = interval, date_labels = "%m/%y") +
+    scale_y_continuous(breaks = pretty_breaks(n = 10)) +
+    scale_fill_manual(values = c("TN" = "#66C2A5", "N_anorg" = "#FC8D62")) +  # Custom colors
+    scale_color_manual(values = c("TN" = "#66C2A5", "N_anorg" = "#FC8D62")) +  # Match line colors
+    labs(x = "Datum staalname", y = y_axis_label) +
+    theme(
+      axis.title = element_text(size = 16),
+      axis.text = element_text(size = 14),
+      legend.position = "bottom",
+      legend.title = element_blank()
+    )
+  
+  return(plot)
+}
+
+generate_multiple_plots_Norg_2020 <- function(codeplas_values, aqua_components, y_label = NULL) {
+  plots <- map(codeplas_values, ~generate_plot_Norg_2020(.x, aqua_components, y_label))
+  names(plots) <- codeplas_values
+  return(plots)
+}
+
+# 2022-2024
 plots_N_org <- generate_multiple_plots_Norg(reeks_2022_2024, c("TN", "N_anorg"), "mg N/l")
 walk2(plots_N_org, names(plots_N_org),
       ~ggsave(filename = paste0("./exports/N_org/", .y, "_", "N_org", ".png"), plot = .x, width = 10, height = 6))
 
+# <2020
+plots_N_org_2020 <- generate_multiple_plots_Norg_2020(reeks_2020, c("TN", "N_anorg"), "mg N/l")
+walk2(plots_N_org_2020, names(plots_N_org_2020),
+      ~ggsave(filename = paste0("./exports/N_org2020/", .y, "_", "N_org2020", ".png"), plot = .x, width = 10, height = 6))
 
 ```
 
