@@ -1825,10 +1825,10 @@ generate_multiple_plots_2020_pH <- function(codeplas_values, aqua_component, wat
 # pH thresholds
 grenswaarden_pH <- list(
   "Aw-om" = list(min = 6.5, max = 8.5),
-  "Cb" = list(min = 6.5, max = 8.5),
-  "Czb" = list(min = 6.5, max = 8.5),
-  "Zm" = list(min = 5.5, max = 8.5),
-  "Zs" = list(min = 5.5, max = 8.5)
+  "Cb" = list(min = 5.5, max = 7.5),
+  "Czb" = list(min = 5.5, max = 7.5),
+  "Zm" = list(min = 4.5, max = 6.5),
+  "Zs" = list(min = 4.5, max = 6.5)
 )
 
 plots_pH <- generate_multiple_plots_pH(reeks_2022_2024, "pH_veld", grenswaarden_pH, "pH")
