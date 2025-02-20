@@ -833,135 +833,24 @@ create_boxplot_basiclog(data_TVG, "alkaliniteit", "Alkaliniteit (log10 meq/l)")
 ```
 
 # TIJDSREEKSEN
-## functie voor tijdsreeksen
+# functies voor tijdsreeksen
+
+## FUNCTIE: 1 variabele, meetreeks (<2020 of 2022-2024) als argument, watertype_thresholds (dataframe met watertypes en MKN-/KRW-norm) zijn optioneel
 ```{r}
-generate_plot <- function(codeplas_value, aqua_component, watertype_thresholds, y_label = NULL) {
+generate_plot <- function(codeplas_value, aqua_component, periode, y_label = NULL, watertype_thresholds = NULL) {
   filtered_data <- data_TVG %>%
-    filter(AquaComponent == aqua_component & meetreeks == "2022-2024" & codeplas == codeplas_value)
+    filter(AquaComponent == aqua_component & periode == meetreeks & codeplas == codeplas_value)
   
   n_results <- nrow(filtered_data)
-  interval <- if(n_results > 12) "2 months" else "1 month"
+  interval <- if (n_results > 12) "2 months" else "1 month"
   
-  watertype <- unique(filtered_data$watertype)
-  threshold <- watertype_thresholds[[watertype]] %||% NA # Use NA if not found
+  threshold <- NA
+  if (!is.null(watertype_thresholds)) {
+    watertype <- unique(filtered_data$watertype)
+    threshold <- watertype_thresholds[[watertype]] %||% NA
+  }
   
-  # If y_label is not provided, use "ResultCalc" as default
-  y_axis_label <- if(is.null(y_label)) "ResultCalc" else y_label
-  
-  plot <- filtered_data %>%
-    ggplot(aes(x = FieldSamplingDate, y = ResultCalc)) +
-    scale_x_date(date_breaks = interval, date_labels = "%m/%y") +
-    scale_y_continuous(breaks = pretty_breaks(n = 10)) +
-    geom_line(linewidth = 1, color = "orange") +
-    geom_point(color = "orange") +
-    geom_hline(yintercept = threshold, linetype = "dashed", color = "black", size = 1) +
-    labs(y = y_axis_label) +
-  theme(
-    axis.title = element_text(size = 16),
-    axis.text = element_text(size = 14),
-    axis.title.x = element_blank()
-  )
-    
-  
-  return(plot)
-}
-
-generate_multiple_plots <- function(codeplas_values, aqua_component, watertype_thresholds, y_label = NULL) {
-  plots <- map(codeplas_values, ~generate_plot(.x, aqua_component, watertype_thresholds, y_label))
-  names(plots) <- codeplas_values
-  return(plots)
-}
-
-# voor data_met_N_anorg
-generate_plot_N_anorg <- function(codeplas_value, aqua_component, watertype_thresholds, y_label = NULL) {
-  filtered_data <- data_met_N_anorg %>%
-    filter(AquaComponent == aqua_component & meetreeks == "2022-2024" & codeplas == codeplas_value)
-  
-  n_results <- nrow(filtered_data)
-  interval <- if(n_results > 12) "2 months" else "1 month"
-  
-  watertype <- unique(filtered_data$watertype)
-  threshold <- watertype_thresholds[[watertype]] %||% NA # Use NA if not found
-  
-  # If y_label is not provided, use "ResultCalc" as default
-  y_axis_label <- if(is.null(y_label)) "ResultCalc" else y_label
-  
-  plot <- filtered_data %>%
-    ggplot(aes(x = FieldSamplingDate, y = ResultCalc)) +
-    scale_x_date(date_breaks = interval, date_labels = "%m/%y") +
-    scale_y_continuous(breaks = pretty_breaks(n = 10)) +
-    geom_line(linewidth = 1, color = "orange") +
-    geom_point(color = "orange") +
-    geom_hline(yintercept = threshold, linetype = "dashed", color = "black", size = 1) +
-    labs(y = y_axis_label) +
-  theme(
-    axis.title = element_text(size = 16),
-    axis.text = element_text(size = 14),
-    axis.title.x = element_blank()
-  )
-    
-  
-  return(plot)
-}
-
-generate_multiple_plots_N_anorg <- function(codeplas_values, aqua_component, watertype_thresholds, y_label = NULL) {
-  plots <- map(codeplas_values, ~generate_plot_N_anorg(.x, aqua_component, watertype_thresholds, y_label))
-  names(plots) <- codeplas_values
-  return(plots)
-}
-
-
-```
-
-### voor <2020
-```{r}
-generate_plot_2020 <- function(codeplas_value, aqua_component, watertype_thresholds, y_label = NULL) {
-  filtered_data <- data_TVG %>%
-    filter(AquaComponent == aqua_component & meetreeks == "<2020" & codeplas == codeplas_value)
-  
-  n_results <- nrow(filtered_data)
-  interval <- if(n_results > 12) "2 months" else "1 month"
-  
-  watertype <- unique(filtered_data$watertype)
-  threshold <- watertype_thresholds[[watertype]] %||% NA # Use NA if not found
-  
-  # If y_label is not provided, use "ResultCalc" as default
-  y_axis_label <- if(is.null(y_label)) "ResultCalc" else y_label
-  
-  plot <- filtered_data %>%
-    ggplot(aes(x = FieldSamplingDate, y = ResultCalc)) +
-    scale_x_date(date_breaks = interval, date_labels = "%m/%y") +
-    scale_y_continuous(breaks = pretty_breaks(n = 10)) +
-    geom_line(linewidth = 1, color = "orange") +
-    geom_point(color = "orange") +
-    geom_hline(yintercept = threshold, linetype = "dashed", color = "black", size = 1) +
-    labs(y = y_axis_label) +
-  theme(
-    axis.title = element_text(size = 16),
-    axis.text = element_text(size = 14),
-    axis.title.x = element_blank()
-  )
-    
-  
-  return(plot)
-}
-
-generate_multiple_plots_2020 <- function(codeplas_values, aqua_component, watertype_thresholds, y_label = NULL) {
-  plots <- map(codeplas_values, ~generate_plot_2020(.x, aqua_component, watertype_thresholds, y_label))
-  names(plots) <- codeplas_values
-  return(plots)
-}
-
-# geen grenswaarden
-generate_plot_2020_nohline <- function(codeplas_value, aqua_component, y_label = NULL) {
-  filtered_data <- data_TVG %>%
-    filter(AquaComponent == aqua_component & meetreeks == "<2020" & codeplas == codeplas_value)
-  
-  n_results <- nrow(filtered_data)
-  interval <- if(n_results > 12) "2 months" else "1 month"
-  
-  # If y_label is not provided, use "ResultCalc" as default
-  y_axis_label <- if(is.null(y_label)) "ResultCalc" else y_label
+  y_axis_label <- if (is.null(y_label)) "ResultCalc" else y_label
   
   plot <- filtered_data %>%
     ggplot(aes(x = FieldSamplingDate, y = ResultCalc)) +
@@ -970,107 +859,256 @@ generate_plot_2020_nohline <- function(codeplas_value, aqua_component, y_label =
     geom_line(linewidth = 1, color = "orange") +
     geom_point(color = "orange") +
     labs(y = y_axis_label) +
-  theme(
-    axis.title = element_text(size = 16),
-    axis.text = element_text(size = 14),
-    axis.title.x = element_blank()
-  )
-    
-  
-  return(plot)
-}
-
-generate_multiple_plots_2020_nohline <- function(codeplas_values, aqua_component, y_label = NULL) {
-  plots <- map(codeplas_values, ~generate_plot_2020_nohline(.x, aqua_component, y_label))
-  names(plots) <- codeplas_values
-  return(plots)
-}
-
-# voor 2 variabelen
-generate_plot_2020_2 <- function(codeplas_value, aqua_component1, aqua_component2, watertype_thresholds, y_label = NULL) {
-  filtered_data1 <- data_TVG %>%
-    filter(AquaComponent == aqua_component1 & meetreeks == "<2020" & codeplas == codeplas_value)
-  
-  filtered_data2 <- data_TVG %>%
-    filter(AquaComponent == aqua_component2 & meetreeks == "<2020" & codeplas == codeplas_value)
-  
-  n_results <- max(nrow(filtered_data1), nrow(filtered_data2))
-  interval <- if(n_results > 12) "2 months" else "1 month"
-  
-  watertype <- unique(filtered_data1$watertype)
-  threshold <- watertype_thresholds[[watertype]] %||% NA # Use NA if not found
-  
-  # If y_label is not provided, use "ResultCalc" as default
-  y_axis_label <- if(is.null(y_label)) "ResultCalc" else y_label
-  
-  plot <- ggplot() +
-    geom_line(data = filtered_data1, aes(x = FieldSamplingDate, y = ResultCalc, color = aqua_component1), linewidth = 1) +
-    geom_point(data = filtered_data1, aes(x = FieldSamplingDate, y = ResultCalc, color = aqua_component1)) +
-    geom_line(data = filtered_data2, aes(x = FieldSamplingDate, y = ResultCalc, color = aqua_component2), linewidth = 1) +
-    geom_point(data = filtered_data2, aes(x = FieldSamplingDate, y = ResultCalc, color = aqua_component2)) +
-    scale_x_date(date_breaks = interval, date_labels = "%m/%y") +
-    scale_y_continuous(breaks = pretty_breaks(n = 10)) +
-    geom_hline(yintercept = threshold, linetype = "dashed", color = "black", size = 1) +
-    labs(y = y_axis_label,
-         color = "AquaComponent") +
     theme(
       axis.title = element_text(size = 16),
       axis.text = element_text(size = 14),
-      legend.title = element_text(size = 16),
-      legend.text = element_text(size = 14),
-      axis.title.x = element_blank()
+      axis.title.x = element_blank(),
+      legend.position="none"
     )
   
+  if (!is.na(threshold)) {
+    plot <- plot + geom_hline(yintercept = threshold, linetype = "dashed", color = "black", size = 1)
+  }
+    
   return(plot)
 }
 
-generate_multiple_plots_2020_2 <- function(codeplas_values, aqua_component1, aqua_component2, watertype_thresholds, y_label = NULL) {
-  plots <- map(codeplas_values, ~generate_plot_2020_2(.x, aqua_component1, aqua_component2, watertype_thresholds, y_label))
-  names(plots) <- codeplas_values
-  return(plots)
-}
-
-# 2 variabelen zonder normgrenzen
-generate_plot_2020_2_nohline <- function(codeplas_value, aqua_component1, aqua_component2, y_label = NULL) {
-  filtered_data1 <- data_TVG %>%
-    filter(AquaComponent == aqua_component1 & meetreeks == "<2020" & codeplas == codeplas_value)
-  
-  filtered_data2 <- data_TVG %>%
-    filter(AquaComponent == aqua_component2 & meetreeks == "<2020" & codeplas == codeplas_value)
-  
-  n_results <- max(nrow(filtered_data1), nrow(filtered_data2))
-  interval <- if(n_results > 12) "2 months" else "1 month"
-  
-  # If y_label is not provided, use "ResultCalc" as default
-  y_axis_label <- if(is.null(y_label)) "ResultCalc" else y_label
-  
-  plot <- ggplot() +
-    geom_line(data = filtered_data1, aes(x = FieldSamplingDate, y = ResultCalc, color = aqua_component1), linewidth = 1) +
-    geom_point(data = filtered_data1, aes(x = FieldSamplingDate, y = ResultCalc, color = aqua_component1)) +
-    geom_line(data = filtered_data2, aes(x = FieldSamplingDate, y = ResultCalc, color = aqua_component2), linewidth = 1) +
-    geom_point(data = filtered_data2, aes(x = FieldSamplingDate, y = ResultCalc, color = aqua_component2)) +
-    scale_x_date(date_breaks = interval, date_labels = "%m/%y") +
-    scale_y_continuous(breaks = pretty_breaks(n = 10)) +
-    labs(y = y_axis_label,
-         color = "AquaComponent") +
-    theme(
-      axis.title = element_text(size = 16),
-      axis.text = element_text(size = 14),
-      legend.title = element_text(size = 16),
-      legend.text = element_text(size = 14),
-      axis.title.x = element_blank()
-    )
-  
-  return(plot)
-}
-
-generate_multiple_plots_2020_2_nohline <- function(codeplas_values, aqua_component1, aqua_component2, y_label = NULL) {
-  plots <- map(codeplas_values, ~generate_plot_2020_2_nohline(.x, aqua_component1, aqua_component2, y_label))
+generate_multiple_plots <- function(codeplas_values, aqua_component, periode, y_label = NULL, watertype_thresholds = NULL) {
+  plots <- map(codeplas_values, ~generate_plot(.x, aqua_component, periode, y_label, watertype_thresholds))
   names(plots) <- codeplas_values
   return(plots)
 }
 
 ```
+
+## FUNCTIE: 2 variabelen
+```{r}
+generate_plot_2 <- function(codeplas_value, aquacomponent1, aquacomponent2, periode, y_label = NULL, watertype_thresholds = NULL) {
+  filtered_data <- data_TVG %>%
+    filter((AquaComponent == aquacomponent1 | AquaComponent == aquacomponent2) & 
+           periode == meetreeks & 
+           codeplas == codeplas_value)
+  
+  n_results <- nrow(filtered_data)
+  interval <- if (n_results > 12) "2 months" else "1 month"
+  
+  threshold <- NA
+  if (!is.null(watertype_thresholds)) {
+    watertype <- unique(filtered_data$watertype)
+    threshold <- watertype_thresholds[[watertype]] %||% NA
+  }
+  
+  y_axis_label <- if (is.null(y_label)) "ResultCalc" else y_label
+  
+  plot <- filtered_data %>%
+    ggplot(aes(x = FieldSamplingDate, y = ResultCalc, color = AquaComponent)) +
+    scale_x_date(date_breaks = interval, date_labels = "%m/%y") +
+    scale_y_continuous(breaks = pretty_breaks(n = 10)) +
+    geom_line(linewidth = 1) +
+    geom_point() +
+    labs(y = y_axis_label) +
+    theme(
+      axis.title = element_text(size = 16),
+      axis.text = element_text(size = 14),
+      axis.title.x = element_blank(),
+      legend.position = "bottom"
+    )
+  
+  if (!is.na(threshold)) {
+    plot <- plot + geom_hline(yintercept = threshold, linetype = "dashed", color = "black", size = 1)
+  }
+    
+  return(plot)
+}
+
+generate_multiple_plots_2 <- function(codeplas_values, aquacomponent1, aquacomponent2, periode, y_label = NULL, watertype_thresholds = NULL) {
+  plots <- map(codeplas_values, ~generate_plot_2(.x, aquacomponent1, aquacomponent2, periode, y_label, watertype_thresholds))
+  names(plots) <- codeplas_values
+  return(plots)
+}
+
+```
+
+## FUNCTIE 2-Y-assen
+```{r}
+generate_plot_2Yaxes <- function(codeplas_value, aquacomponent1, aquacomponent2, periode, y_label1 = NULL, y_label2 = NULL, watertype_thresholds = NULL) {
+  # Filter data for both AquaComponents
+  filtered_data_1 <- data_TVG %>%
+    filter(AquaComponent == aquacomponent1 & periode == meetreeks & codeplas == codeplas_value)
+  
+  filtered_data_2 <- data_TVG %>%
+    filter(AquaComponent == aquacomponent2 & periode == meetreeks & codeplas == codeplas_value)
+  
+  # Determine intervals for x-axis
+  n_results <- max(nrow(filtered_data_1), nrow(filtered_data_2))
+  interval <- if (n_results > 12) "2 months" else "1 month"
+  
+  # Thresholds (if provided)
+  threshold1 <- threshold2 <- NA
+  if (!is.null(watertype_thresholds)) {
+    watertype1 <- unique(filtered_data_1$watertype)
+    watertype2 <- unique(filtered_data_2$watertype)
+    threshold1 <- watertype_thresholds[[watertype1]] %||% NA
+    threshold2 <- watertype_thresholds[[watertype2]] %||% NA
+  }
+  
+  # Default y-axis labels if not provided
+  y_axis_label1 <- if (is.null(y_label1)) paste("ResultCalc", aquacomponent1) else y_label1
+  y_axis_label2 <- if (is.null(y_label2)) paste("ResultCalc", aquacomponent2) else y_label2
+  
+  # Create the plot
+  plot <- ggplot() +
+    # Plot for AquaComponent 1 (primary y-axis)
+    geom_line(data = filtered_data_1, aes(x = FieldSamplingDate, y = ResultCalc), color = "blue4", linewidth = 1) +
+    geom_point(data = filtered_data_1, aes(x = FieldSamplingDate, y = ResultCalc), color = "blue4") +
+    # Plot for AquaComponent 2 (secondary y-axis)
+    geom_line(data = filtered_data_2, aes(x = FieldSamplingDate, y = ResultCalc / max(ResultCalc) * max(filtered_data_1$ResultCalc)), 
+              color = "orange3", linewidth = 1) +
+    geom_point(data = filtered_data_2, aes(x = FieldSamplingDate, y = ResultCalc / max(ResultCalc) * max(filtered_data_1$ResultCalc)), 
+               color = "orange3") +
+    # Primary y-axis
+    scale_y_continuous(
+      name = y_axis_label1,
+      breaks = pretty_breaks(n = 10),
+      sec.axis = sec_axis(~ . * max(filtered_data_2$ResultCalc) / max(filtered_data_1$ResultCalc), name = y_axis_label2)
+    ) +
+    # X-axis formatting
+    scale_x_date(date_breaks = interval, date_labels = "%m/%y") +
+    labs(x = NULL) +
+    theme(
+      axis.title.y.left = element_text(color = "blue4", size = 16),
+      axis.title.y.right = element_text(color = "orange3", size = 16),
+      axis.text.x = element_text(size = 14),
+      axis.text.y.left = element_text(color = "blue4", size = 14),
+      axis.text.y.right = element_text(color = "orange3", size = 14),
+      legend.position = "none"
+    )
+  
+  # Add thresholds if provided
+  if (!is.na(threshold1)) {
+    plot <- plot + geom_hline(yintercept = threshold1, linetype = "dashed", color = "blue4", size = 0.8)
+  }
+  
+  if (!is.na(threshold2)) {
+    plot <- plot + geom_hline(yintercept = threshold2 / max(filtered_data_2$ResultCalc) * max(filtered_data_1$ResultCalc), 
+                              linetype = "dashed", color = "orange3", size = 0.8)
+  }
+  
+  return(plot)
+}
+
+generate_multiple_plots_2Yaxes <- function(codeplas_values, aquacomponent1, aquacomponent2, periode, y_label1 = NULL, y_label2 = NULL, watertype_thresholds = NULL) {
+  plots <- map(codeplas_values, ~generate_plot_2Yaxes(.x, aquacomponent1, aquacomponent2, periode, y_label1, y_label2, watertype_thresholds))
+  names(plots) <- codeplas_values
+  return(plots)
+}
+```
+
+## FUNCTIE 2+ variabelen geom_area
+```{r}
+generate_plot_multi <- function(codeplas_value, aqua_components, periode, y_label = NULL) {
+  # Filter data for all AquaComponents in the list
+  filtered_data <- data_TVG %>%
+    filter(AquaComponent %in% aqua_components & periode == meetreeks & codeplas == codeplas_value)
+  
+  # Calculate average values for each AquaComponent
+  avg_values <- filtered_data %>%
+    group_by(AquaComponent) %>%
+    summarize(avg_value = mean(ResultCalc, na.rm = TRUE)) %>%
+    arrange(desc(avg_value))  # Arrange in descending order
+  
+  # Reorder the AquaComponent factor based on average values
+  filtered_data$AquaComponent <- factor(filtered_data$AquaComponent, 
+                                        levels = avg_values$AquaComponent)
+  
+  n_results <- nrow(filtered_data)
+  interval <- if (n_results > 12) "2 months" else "1 month"
+  
+  # Default y-axis label
+  y_axis_label <- if (is.null(y_label)) "ResultCalc" else y_label
+  
+  # Create the plot
+  plot <- ggplot(filtered_data, aes(x = FieldSamplingDate, y = ResultCalc, fill = AquaComponent)) +
+    geom_area(alpha = 0.6, position = "identity", color = "black") +
+    scale_x_date(date_breaks = interval, date_labels = "%m/%y") +
+    scale_y_continuous(breaks = pretty_breaks(n = 10)) +
+    scale_fill_brewer(palette = "Set2") +
+    labs(y = y_axis_label, fill = "AquaComponent") +
+    theme(
+      axis.title = element_text(size = 16),
+      axis.text = element_text(size = 14),
+      axis.title.x = element_blank(),
+      legend.position = "bottom"
+    )
+  
+  return(plot)
+}
+
+generate_multiple_plots_multi <- function(codeplas_values, aqua_components, periode, y_label = NULL) {
+  plots <- map(codeplas_values, ~generate_plot_multi(.x, aqua_components, periode, y_label))
+  names(plots) <- codeplas_values
+  return(plots)
+}
+
+```
+
+## FUNCTIE onder- en bovengrens (pH, alkaliniteit e.d.)
+```{r}
+generate_plot_minmax <- function(codeplas_value, aqua_component, periode, grenswaarden_pH, y_label = NULL) {
+  # Filter data
+  filtered_data <- data_TVG %>%
+    filter(AquaComponent == aqua_component & periode == meetreeks & codeplas == codeplas_value)
+  
+  n_results <- nrow(filtered_data)
+  interval <- if (n_results > 12) "2 months" else "1 month"
+  
+  # Determine watertype and corresponding pH thresholds
+  watertype <- unique(filtered_data$watertype)
+  min_threshold <- NA
+  max_threshold <- NA
+  if (length(watertype) == 1 && watertype %in% names(grenswaarden_pH)) {
+    min_threshold <- grenswaarden_pH[[watertype]]$min
+    max_threshold <- grenswaarden_pH[[watertype]]$max
+  }
+  
+  # Default y-axis label
+  y_axis_label <- if (is.null(y_label)) "ResultCalc" else y_label
+  
+  # Create the plot
+  plot <- filtered_data %>%
+    ggplot(aes(x = FieldSamplingDate, y = ResultCalc)) +
+    geom_line(linewidth = 1, color = "orange") +
+    geom_point(color = "orange") +
+    scale_x_date(date_breaks = interval, date_labels = "%m/%y") +
+    scale_y_continuous(breaks = pretty_breaks(n = 10)) +
+    labs(y = y_axis_label) +
+    theme(
+      axis.title = element_text(size = 16),
+      axis.text = element_text(size = 14),
+      axis.title.x = element_blank()
+    )
+  
+  # Add horizontal lines for min and max thresholds if they exist
+  if (!is.na(min_threshold)) {
+    plot <- plot + 
+      geom_hline(yintercept = min_threshold, linetype = "dashed", color = "black", size = 1)
+  }
+  
+  if (!is.na(max_threshold)) {
+    plot <- plot + 
+      geom_hline(yintercept = max_threshold, linetype = "dashed", color = "black", size = 1)
+  }
+  
+  return(plot)
+}
+
+generate_multiple_plots_minmax <- function(codeplas_values, aqua_component, periode, grenswaarden_pH, y_label = NULL) {
+  plots <- map(codeplas_values, ~generate_plot_minmax(.x, aqua_component, periode, grenswaarden_pH, y_label))
+  names(plots) <- codeplas_values
+  return(plots)
+}
+```
+
 
 ### figuren <2020
 ```{r}
@@ -1229,311 +1267,6 @@ walk2(plots_ZS105_550_2020, names(plots_ZS105_550_2020),
       ~ggsave(filename = paste0("./exports/ZS105_550_2020/", .y, "_", "ZS105_550_2020", ".png"), plot = .x, width = 10, height = 6))
 ```
 
-
-## functie voor tijdsreeksen zonder grenswaarde
-```{r}
-generate_plot_nohline <- function(codeplas_value, aqua_component, y_label = NULL) {
-  filtered_data <- data_TVG %>%
-    filter(AquaComponent == aqua_component & meetreeks == "2022-2024" & codeplas == codeplas_value)
-  
-  n_results <- nrow(filtered_data)
-  interval <- if(n_results > 12) "2 months" else "1 month"
-  
-  # If y_label is not provided, use "ResultCalc" as default
-  y_axis_label <- if(is.null(y_label)) "ResultCalc" else y_label
-  
-  plot <- filtered_data %>%
-    ggplot(aes(x = FieldSamplingDate, y = ResultCalc)) +
-    scale_x_date(date_breaks = interval, date_labels = "%m/%y") +
-    scale_y_continuous(breaks = pretty_breaks(n = 10)) +
-    geom_line(linewidth = 1, color = "orange") +
-    geom_point(color = "orange") +
-    labs(y = y_axis_label) +
-  theme(
-    axis.title = element_text(size = 16),
-    axis.text = element_text(size = 14),
-    axis.title.x = element_blank()
-  )
-    
-  
-  return(plot)
-}
-
-generate_multiple_plots_nohline <- function(codeplas_values, aqua_component, y_label = NULL) {
-  plots <- map(codeplas_values, ~generate_plot_nohline(.x, aqua_component, y_label))
-  names(plots) <- codeplas_values
-  return(plots)
-}
-
-```
-
-## code voor 2 variabelen te plotten (vb WD en SD, ZS105 en ZS550)
-```{r}
-generate_plot_2 <- function(codeplas_value, aqua_component1, aqua_component2, watertype_thresholds, y_label = NULL) {
-  filtered_data1 <- data_TVG %>%
-    filter(AquaComponent == aqua_component1 & meetreeks == "2022-2024" & codeplas == codeplas_value)
-  
-  filtered_data2 <- data_TVG %>%
-    filter(AquaComponent == aqua_component2 & meetreeks == "2022-2024" & codeplas == codeplas_value)
-  
-  n_results <- max(nrow(filtered_data1), nrow(filtered_data2))
-  interval <- if(n_results > 12) "2 months" else "1 month"
-  
-  watertype <- unique(filtered_data1$watertype)
-  threshold <- watertype_thresholds[[watertype]] %||% NA # Use NA if not found
-  
-  # If y_label is not provided, use "ResultCalc" as default
-  y_axis_label <- if(is.null(y_label)) "ResultCalc" else y_label
-  
-  plot <- ggplot() +
-    geom_line(data = filtered_data1, aes(x = FieldSamplingDate, y = ResultCalc, color = aqua_component1), linewidth = 1) +
-    geom_point(data = filtered_data1, aes(x = FieldSamplingDate, y = ResultCalc, color = aqua_component1)) +
-    geom_line(data = filtered_data2, aes(x = FieldSamplingDate, y = ResultCalc, color = aqua_component2), linewidth = 1) +
-    geom_point(data = filtered_data2, aes(x = FieldSamplingDate, y = ResultCalc, color = aqua_component2)) +
-    scale_x_date(date_breaks = interval, date_labels = "%m/%y") +
-    scale_y_continuous(breaks = pretty_breaks(n = 10)) +
-    geom_hline(yintercept = threshold, linetype = "dashed", color = "black", size = 1) +
-    labs(y = y_axis_label,
-         color = "AquaComponent") +
-    theme(
-      axis.title = element_text(size = 16),
-      axis.text = element_text(size = 14),
-      legend.title = element_text(size = 16),
-      legend.text = element_text(size = 14),
-      axis.title.x = element_blank()
-    )
-  
-  return(plot)
-}
-
-generate_multiple_plots_2 <- function(codeplas_values, aqua_component1, aqua_component2, watertype_thresholds, y_label = NULL) {
-  plots <- map(codeplas_values, ~generate_plot_2(.x, aqua_component1, aqua_component2, watertype_thresholds, y_label))
-  names(plots) <- codeplas_values
-  return(plots)
-}
-
-# zonder normgrenzen
-generate_plot_2_nohline <- function(codeplas_value, aqua_component1, aqua_component2, y_label = NULL) {
-  filtered_data1 <- data_TVG %>%
-    filter(AquaComponent == aqua_component1 & meetreeks == "2022-2024" & codeplas == codeplas_value)
-  
-  filtered_data2 <- data_TVG %>%
-    filter(AquaComponent == aqua_component2 & meetreeks == "2022-2024" & codeplas == codeplas_value)
-  
-  n_results <- max(nrow(filtered_data1), nrow(filtered_data2))
-  interval <- if(n_results > 12) "2 months" else "1 month"
-  
-  # If y_label is not provided, use "ResultCalc" as default
-  y_axis_label <- if(is.null(y_label)) "ResultCalc" else y_label
-  
-  plot <- ggplot() +
-    geom_line(data = filtered_data1, aes(x = FieldSamplingDate, y = ResultCalc, color = aqua_component1), linewidth = 1) +
-    geom_point(data = filtered_data1, aes(x = FieldSamplingDate, y = ResultCalc, color = aqua_component1)) +
-    geom_line(data = filtered_data2, aes(x = FieldSamplingDate, y = ResultCalc, color = aqua_component2), linewidth = 1) +
-    geom_point(data = filtered_data2, aes(x = FieldSamplingDate, y = ResultCalc, color = aqua_component2)) +
-    scale_x_date(date_breaks = interval, date_labels = "%m/%y") +
-    scale_y_continuous(breaks = pretty_breaks(n = 10)) +
-    labs(y = y_axis_label,
-         color = "AquaComponent") +
-    theme(
-      axis.title = element_text(size = 16),
-      axis.text = element_text(size = 14),
-      legend.title = element_text(size = 16),
-      legend.text = element_text(size = 14),
-      axis.title.x = element_blank()
-    )
-  
-  return(plot)
-}
-
-generate_multiple_plots_2_nohline <- function(codeplas_values, aqua_component1, aqua_component2, y_label = NULL) {
-  plots <- map(codeplas_values, ~generate_plot_2_nohline(.x, aqua_component1, aqua_component2, y_label))
-  names(plots) <- codeplas_values
-  return(plots)
-}
-
-# < 2020
-generate_plot_2_2020 <- function(codeplas_value, aqua_component1, aqua_component2, watertype_thresholds, y_label = NULL) {
-  filtered_data1 <- data_TVG %>%
-    filter(AquaComponent == aqua_component1 & meetreeks == "<2020" & codeplas == codeplas_value)
-  
-  filtered_data2 <- data_TVG %>%
-    filter(AquaComponent == aqua_component2 & meetreeks == "<2020" & codeplas == codeplas_value)
-  
-  n_results <- max(nrow(filtered_data1), nrow(filtered_data2))
-  interval <- if(n_results > 12) "2 months" else "1 month"
-  
-  watertype <- unique(filtered_data1$watertype)
-  threshold <- watertype_thresholds[[watertype]] %||% NA # Use NA if not found
-  
-  # If y_label is not provided, use "ResultCalc" as default
-  y_axis_label <- if(is.null(y_label)) "ResultCalc" else y_label
-  
-  plot <- ggplot() +
-    geom_line(data = filtered_data1, aes(x = FieldSamplingDate, y = ResultCalc, color = aqua_component1), linewidth = 1) +
-    geom_point(data = filtered_data1, aes(x = FieldSamplingDate, y = ResultCalc, color = aqua_component1)) +
-    geom_line(data = filtered_data2, aes(x = FieldSamplingDate, y = ResultCalc, color = aqua_component2), linewidth = 1) +
-    geom_point(data = filtered_data2, aes(x = FieldSamplingDate, y = ResultCalc, color = aqua_component2)) +
-    scale_x_date(date_breaks = interval, date_labels = "%m/%y") +
-    scale_y_continuous(breaks = pretty_breaks(n = 10)) +
-    geom_hline(yintercept = threshold, linetype = "dashed", color = "black", size = 1) +
-    labs(y = y_axis_label,
-         color = "AquaComponent") +
-    theme(
-      axis.title = element_text(size = 16),
-      axis.text = element_text(size = 14),
-      legend.title = element_text(size = 16),
-      legend.text = element_text(size = 14),
-      axis.title.x = element_blank()
-    )
-  
-  return(plot)
-}
-
-generate_multiple_plots_2_2020 <- function(codeplas_values, aqua_component1, aqua_component2, watertype_thresholds, y_label = NULL) {
-  plots <- map(codeplas_values, ~generate_plot_2_2020(.x, aqua_component1, aqua_component2, watertype_thresholds, y_label))
-  names(plots) <- codeplas_values
-  return(plots)
-}
-
-# zonder normgrenzen
-generate_plot_2_nohline_2020 <- function(codeplas_value, aqua_component1, aqua_component2, y_label = NULL) {
-  filtered_data1 <- data_TVG %>%
-    filter(AquaComponent == aqua_component1 & meetreeks == "<2020" & codeplas == codeplas_value)
-  
-  filtered_data2 <- data_TVG %>%
-    filter(AquaComponent == aqua_component2 & meetreeks == "<2020" & codeplas == codeplas_value)
-  
-  n_results <- max(nrow(filtered_data1), nrow(filtered_data2))
-  interval <- if(n_results > 12) "2 months" else "1 month"
-  
-  # If y_label is not provided, use "ResultCalc" as default
-  y_axis_label <- if(is.null(y_label)) "ResultCalc" else y_label
-  
-  plot <- ggplot() +
-    geom_line(data = filtered_data1, aes(x = FieldSamplingDate, y = ResultCalc, color = aqua_component1), linewidth = 1) +
-    geom_point(data = filtered_data1, aes(x = FieldSamplingDate, y = ResultCalc, color = aqua_component1)) +
-    geom_line(data = filtered_data2, aes(x = FieldSamplingDate, y = ResultCalc, color = aqua_component2), linewidth = 1) +
-    geom_point(data = filtered_data2, aes(x = FieldSamplingDate, y = ResultCalc, color = aqua_component2)) +
-    scale_x_date(date_breaks = interval, date_labels = "%m/%y") +
-    scale_y_continuous(breaks = pretty_breaks(n = 10)) +
-    labs(y = y_axis_label,
-         color = "AquaComponent") +
-    theme(
-      axis.title = element_text(size = 16),
-      axis.text = element_text(size = 14),
-      legend.title = element_text(size = 16),
-      legend.text = element_text(size = 14),
-      axis.title.x = element_blank()
-    )
-  
-  return(plot)
-}
-
-generate_multiple_plots_2_nohline_2020 <- function(codeplas_values, aqua_component1, aqua_component2, y_label = NULL) {
-  plots <- map(codeplas_values, ~generate_plot_2_nohline_2020(.x, aqua_component1, aqua_component2, y_label))
-  names(plots) <- codeplas_values
-  return(plots)
-}
-```
-
-## functie tijdsreeks met 2 variabelen op 1 figuur
-```{r}
-generate_plot_two_components <- function(codeplas_value, aqua_component1, aqua_component2, y_label1 = NULL, y_label2 = NULL) {
-  filtered_data1 <- data_TVG %>%
-    filter(AquaComponent == aqua_component1 & meetreeks == "2022-2024" & codeplas == codeplas_value)
-  
-  filtered_data2 <- data_TVG %>%
-    filter(AquaComponent == aqua_component2 & meetreeks == "2022-2024" & codeplas == codeplas_value)
-  
-  n_results <- max(nrow(filtered_data1), nrow(filtered_data2))
-  interval <- if(n_results > 12) "2 months" else "1 month"
-  
-  y_axis_label1 <- if(is.null(y_label1)) paste("ResultCalc", aqua_component1) else y_label1
-  y_axis_label2 <- if(is.null(y_label2)) paste("ResultCalc", aqua_component2) else y_label2
-  
-  # Calculate the scaling factor
-  scale_factor <- max(filtered_data2$ResultCalc, na.rm = TRUE) / max(filtered_data1$ResultCalc, na.rm = TRUE)
-  
-  plot <- ggplot() +
-    geom_line(data = filtered_data1, aes(x = FieldSamplingDate, y = ResultCalc, color = aqua_component1), linewidth = 1) +
-    geom_point(data = filtered_data1, aes(x = FieldSamplingDate, y = ResultCalc, color = aqua_component1)) +
-    geom_line(data = filtered_data2, aes(x = FieldSamplingDate, y = ResultCalc / scale_factor, color = aqua_component2), linewidth = 1) +
-    geom_point(data = filtered_data2, aes(x = FieldSamplingDate, y = ResultCalc / scale_factor, color = aqua_component2)) +
-    scale_x_date(date_breaks = interval, date_labels = "%m/%y") +
-    scale_y_continuous(name = y_axis_label1, 
-                       sec.axis = sec_axis(~. * scale_factor, name = y_axis_label2)) +
-    scale_color_manual(values = c("orange", "blue4")) +
-    labs(color = "AquaComponent") +
-    theme(
-      legend.position = "none",
-      axis.title = element_text(size = 16),
-      axis.text = element_text(size = 14),
-      axis.title.y.left = element_text(color = "orange"),
-      axis.text.y.left = element_text(color = "orange"),
-      axis.title.y.right = element_text(color = "blue4"),
-      axis.text.y.right = element_text(color = "blue4"),
-      axis.title.x = element_blank()
-    )
-  
-  return(plot)
-}
-
-generate_multiple_plots_two_components <- function(codeplas_values, aqua_component1, aqua_component2, y_label1 = NULL, y_label2 = NULL) {
-  plots <- map(codeplas_values, ~generate_plot_two_components(.x, aqua_component1, aqua_component2, y_label1, y_label2))
-  names(plots) <- codeplas_values
-  return(plots)
-}
-
-# voor <2020
-generate_plot_two_components_2020 <- function(codeplas_value, aqua_component1, aqua_component2, y_label1 = NULL, y_label2 = NULL) {
-  filtered_data1 <- data_TVG %>%
-    filter(AquaComponent == aqua_component1 & meetreeks == "<2020" & codeplas == codeplas_value)
-  
-  filtered_data2 <- data_TVG %>%
-    filter(AquaComponent == aqua_component2 & meetreeks == "<2020" & codeplas == codeplas_value)
-  
-  n_results <- max(nrow(filtered_data1), nrow(filtered_data2))
-  interval <- if(n_results > 12) "2 months" else "1 month"
-  
-  y_axis_label1 <- if(is.null(y_label1)) paste("ResultCalc", aqua_component1) else y_label1
-  y_axis_label2 <- if(is.null(y_label2)) paste("ResultCalc", aqua_component2) else y_label2
-  
-  # Calculate the scaling factor
-  scale_factor <- max(filtered_data2$ResultCalc, na.rm = TRUE) / max(filtered_data1$ResultCalc, na.rm = TRUE)
-  
-  plot <- ggplot() +
-    geom_line(data = filtered_data1, aes(x = FieldSamplingDate, y = ResultCalc, color = aqua_component1), linewidth = 1) +
-    geom_point(data = filtered_data1, aes(x = FieldSamplingDate, y = ResultCalc, color = aqua_component1)) +
-    geom_line(data = filtered_data2, aes(x = FieldSamplingDate, y = ResultCalc / scale_factor, color = aqua_component2), linewidth = 1) +
-    geom_point(data = filtered_data2, aes(x = FieldSamplingDate, y = ResultCalc / scale_factor, color = aqua_component2)) +
-    scale_x_date(date_breaks = interval, date_labels = "%m/%y") +
-    scale_y_continuous(name = y_axis_label1, 
-                       sec.axis = sec_axis(~. * scale_factor, name = y_axis_label2)) +
-    scale_color_manual(values = c("orange", "blue4")) +
-    labs(color = "AquaComponent") +
-    theme(
-      legend.position = "none",
-      axis.title = element_text(size = 16),
-      axis.text = element_text(size = 14),
-      axis.title.y.left = element_text(color = "orange"),
-      axis.text.y.left = element_text(color = "orange"),
-      axis.title.y.right = element_text(color = "blue4"),
-      axis.text.y.right = element_text(color = "blue4"),
-      axis.title.x = element_blank()
-    )
-  
-  return(plot)
-}
-
-generate_multiple_plots_two_components_2020 <- function(codeplas_values, aqua_component1, aqua_component2, y_label1 = NULL, y_label2 = NULL) {
-  plots <- map(codeplas_values, ~generate_plot_two_components(.x, aqua_component1, aqua_component2, y_label1, y_label2))
-  names(plots) <- codeplas_values
-  return(plots)
-}
-
-
-```
 
 ## tijdreeksen aparte y-as 2 variabelen
 ```{r}
@@ -1766,111 +1499,8 @@ walk2(plots_NPOC, names(plots_NPOC),
 
 ```
 
-## aparte code voor zuurtegraad (onder en bovengrenzen - 2 horizontale lijnen)
+### pH
 ```{r}
-generate_plot_pH <- function(codeplas_value, aqua_component, watertype_thresholds, y_label = NULL) {
-  filtered_data <- data_TVG %>%
-    filter(AquaComponent == aqua_component & meetreeks == "2022-2024" & codeplas == codeplas_value)
-  
-  n_results <- nrow(filtered_data)
-  interval <- if(n_results > 12) "2 months" else "1 month"
-  
-  watertype <- unique(filtered_data$watertype)
-  
-  # Check if watertype exists in the thresholds and get min/max values
-  if (watertype %in% names(watertype_thresholds)) {
-    threshold_min <- watertype_thresholds[[watertype]]$min
-    threshold_max <- watertype_thresholds[[watertype]]$max
-  } else {
-    threshold_min <- NA
-    threshold_max <- NA
-  }
-  
-  # If y_label is not provided, use "ResultCalc" as default
-  y_axis_label <- if(is.null(y_label)) "ResultCalc" else y_label
-  
-  plot <- filtered_data %>%
-    ggplot(aes(x = FieldSamplingDate, y = ResultCalc)) +
-    scale_x_date(date_breaks = interval, date_labels = "%m/%y") +
-    scale_y_continuous(breaks = pretty_breaks(n = 10)) +
-    geom_line(linewidth = 1, color = "orange") +
-    geom_point(color = "orange") +
-    labs(y = y_axis_label) +
-  theme(
-    axis.title = element_text(size = 16),
-    axis.text = element_text(size = 14),
-    axis.title.x = element_blank()
-  )
-  
-  # Add threshold lines only if they are not NA
-  if (!is.na(threshold_min)) {
-    plot <- plot + geom_hline(yintercept = threshold_min, linetype = "dashed", color = "black", size = 1)
-  }
-  if (!is.na(threshold_max)) {
-    plot <- plot + geom_hline(yintercept = threshold_max, linetype = "dashed", color = "black", size = 1)
-  }
-  
-  return(plot)
-}
-
-generate_multiple_plots_pH <- function(codeplas_values, aqua_component, watertype_thresholds, y_label = NULL) {
-  plots <- map(codeplas_values, ~generate_plot_pH(.x, aqua_component, watertype_thresholds, y_label))
-  names(plots) <- codeplas_values
-  return(plots)
-}
-
-# 2020
-generate_plot_2020_pH <- function(codeplas_value, aqua_component, watertype_thresholds, y_label = NULL) {
-  filtered_data <- data_TVG %>%
-    filter(AquaComponent == aqua_component & meetreeks == "<2020" & codeplas == codeplas_value)
-  
-  n_results <- nrow(filtered_data)
-  interval <- if(n_results > 12) "2 months" else "1 month"
-  
-  watertype <- unique(filtered_data$watertype)
-  
-  # Check if watertype exists in the thresholds and get min/max values
-  if (watertype %in% names(watertype_thresholds)) {
-    threshold_min <- watertype_thresholds[[watertype]]$min
-    threshold_max <- watertype_thresholds[[watertype]]$max
-  } else {
-    threshold_min <- NA
-    threshold_max <- NA
-  }
-  
-  # If y_label is not provided, use "ResultCalc" as default
-  y_axis_label <- if(is.null(y_label)) "ResultCalc" else y_label
-  
-  plot <- filtered_data %>%
-    ggplot(aes(x = FieldSamplingDate, y = ResultCalc)) +
-    scale_x_date(date_breaks = interval, date_labels = "%m/%y") +
-    scale_y_continuous(breaks = pretty_breaks(n = 10)) +
-    geom_line(linewidth = 1, color = "orange") +
-    geom_point(color = "orange") +
-    labs(y = y_axis_label) +
-  theme(
-    axis.title = element_text(size = 16),
-    axis.text = element_text(size = 14),
-    axis.title.x = element_blank()
-  )
-  
-  # Add threshold lines only if they are not NA
-  if (!is.na(threshold_min)) {
-    plot <- plot + geom_hline(yintercept = threshold_min, linetype = "dashed", color = "black", size = 1)
-  }
-  if (!is.na(threshold_max)) {
-    plot <- plot + geom_hline(yintercept = threshold_max, linetype = "dashed", color = "black", size = 1)
-  }
-  
-  return(plot)
-}
-
-generate_multiple_plots_2020_pH <- function(codeplas_values, aqua_component, watertype_thresholds, y_label = NULL) {
-  plots <- map(codeplas_values, ~generate_plot_2020_pH(.x, aqua_component, watertype_thresholds, y_label))
-  names(plots) <- codeplas_values
-  return(plots)
-}
-
 # pH thresholds
 grenswaarden_pH <- list(
   "Aw-om" = list(min = 6.5, max = 8.5),
@@ -1890,7 +1520,7 @@ walk2(plots_pH_2020, names(plots_pH_2020),
 
 ```
 
-## aparte code voor WD en SD (2 variabelen in 1 plot)
+### WD en SD (2 variabelen in 1 plot)
 ```{r}
 # waterdiepte en secchi-diepte
 grenswaarden_SD <- list(
@@ -1923,158 +1553,8 @@ walk2(plots_ZS105, names(plots_ZS105),
       ~ggsave(filename = paste0("./exports/ZS_105_550/", .y, "_", "ZS105_550", ".png"), plot = .x, width = 10, height = 6))
 ```
 
-## aparte code N_anorganisch (NH4_N + NO3_N + NO2_N)
+## N_anorganisch (NH4_N + NO3_N + NO2_N)
 ```{r}
-generate_plot_Nanorg <- function(codeplas_value, aqua_components, y_label = NULL) {
-  filtered_data <- data_TVG %>%
-    filter(AquaComponent %in% aqua_components & meetreeks == "2022-2024" & codeplas == codeplas_value)
-  
-  n_results <- nrow(filtered_data)
-  interval <- if(n_results > 12) "2 months" else "1 month"
-  
-  # If y_label is not provided, use "ResultCalc" as default
-  y_axis_label <- if(is.null(y_label)) "ResultCalc" else y_label
-  
-  plot <- filtered_data %>%
-    ggplot(aes(x = FieldSamplingDate, y = ResultCalc, fill = AquaComponent)) +
-    geom_area(position = "identity", alpha = 0.6, color = "black", size = 0.5) +
-    scale_x_date(date_breaks = interval, date_labels = "%m/%y") +
-    scale_y_continuous(breaks = pretty_breaks(n = 10)) +
-    scale_fill_brewer(palette = "Set2") +
-    labs(y = y_axis_label) +
-    theme(
-      axis.title = element_text(size = 16),
-      axis.text = element_text(size = 14),
-      legend.position = "bottom",
-      legend.title = element_blank(),
-      axis.title.x = element_blank()
-    )
-  
-  return(plot)
-}
-
-generate_multiple_plots_Nanorg <- function(codeplas_values, aqua_components, y_label = NULL) {
-  plots <- map(codeplas_values, ~generate_plot_Nanorg(.x, aqua_components, y_label))
-  names(plots) <- codeplas_values
-  return(plots)
-}
-
-# voor <2020
-generate_plot_2020_Nanorg <- function(codeplas_value, aqua_components, y_label = NULL) {
-  filtered_data <- data_TVG %>%
-    filter(AquaComponent %in% aqua_components & meetreeks == "<2020" & codeplas == codeplas_value)
-  
-  n_results <- nrow(filtered_data)
-  interval <- if(n_results > 12) "2 months" else "1 month"
-  
-  # If y_label is not provided, use "ResultCalc" as default
-  y_axis_label <- if(is.null(y_label)) "ResultCalc" else y_label
-  
-  plot <- filtered_data %>%
-    ggplot(aes(x = FieldSamplingDate, y = ResultCalc, fill = AquaComponent)) +
-    geom_area(position = "identity", alpha = 0.6, color = "black", size = 0.5) +
-    scale_x_date(date_breaks = interval, date_labels = "%m/%y") +
-    scale_y_continuous(breaks = pretty_breaks(n = 10)) +
-    scale_fill_brewer(palette = "Set2") +
-    labs(y = y_axis_label) +
-    theme(
-      axis.title = element_text(size = 16),
-      axis.text = element_text(size = 14),
-      legend.position = "bottom",
-      legend.title = element_blank(),
-      axis.title.x = element_blank()
-    )
-  
-  return(plot)
-}
-
-generate_multiple_plots_2020_Nanorg <- function(codeplas_values, aqua_components, y_label = NULL) {
-  plots <- map(codeplas_values, ~generate_plot_2020_Nanorg(.x, aqua_components, y_label))
-  names(plots) <- codeplas_values
-  return(plots)
-}
-
-# met log-transformatie
-generate_plot_Nanorglog <- function(codeplas_value, aqua_components, y_label = NULL) {
-  filtered_data <- data_TVG %>%
-    filter(AquaComponent %in% aqua_components & meetreeks == "2022-2024" & codeplas == codeplas_value) %>%
-    mutate(log_ResultCalc = log10(pmax(ResultCalc, 1e-10)))  # Avoid log(0)
-  
-  n_results <- nrow(filtered_data)
-  interval <- if(n_results > 12) "2 months" else "1 month"
-  
-  y_axis_label <- if(is.null(y_label)) "log10(ResultCalc)" else y_label
-  
-  plot <- filtered_data %>%
-    ggplot(aes(x = FieldSamplingDate, y = log_ResultCalc, fill = AquaComponent, color = AquaComponent)) +
-    geom_ribbon(aes(ymin = min(log_ResultCalc), ymax = log_ResultCalc), alpha = 0.6) +
-    geom_line(size = 0.5) +
-    scale_x_date(date_breaks = interval, date_labels = "%m/%y") +
-    scale_y_continuous(breaks = pretty_breaks(n = 10),
-                       labels = function(x) sprintf("10^%.0f", x),
-                       limits = c(NA, NA)) +  # Allow ggplot to set appropriate limits
-    scale_fill_brewer(palette = "Set2") +
-    scale_color_brewer(palette = "Set2") +
-    labs(y = y_axis_label) +
-    theme(
-      axis.title = element_text(size = 16),
-      axis.text = element_text(size = 14),
-      legend.position = "bottom",
-      legend.title = element_blank(),
-      axis.title.x = element_blank()
-    )
-  
-  return(plot)
-}
-
-generate_multiple_plots_Nanorglog <- function(codeplas_values, aqua_components, y_label = NULL) {
-  plots <- map(codeplas_values, ~generate_plot_Nanorglog(.x, aqua_components, y_label))
-  names(plots) <- codeplas_values
-  return(plots)
-}
-
-# voor < 2020 logaritmisch
-generate_plot_2020_Nanorglog <- function(codeplas_value, aqua_components, y_label = NULL) {
-  filtered_data <- data_TVG %>%
-    filter(AquaComponent %in% aqua_components & meetreeks == "<2020" & codeplas == codeplas_value) %>%
-    mutate(log_ResultCalc = log10(pmax(ResultCalc, 1e-10)))  # Avoid log(0)
-  
-  n_results <- nrow(filtered_data)
-  interval <- if(n_results > 12) "2 months" else "1 month"
-  
-  y_axis_label <- if(is.null(y_label)) "log10(ResultCalc)" else y_label
-  
-  plot <- filtered_data %>%
-    ggplot(aes(x = FieldSamplingDate, y = log_ResultCalc, fill = AquaComponent, color = AquaComponent)) +
-    geom_ribbon(aes(ymin = min(log_ResultCalc), ymax = log_ResultCalc), alpha = 0.6) +
-    geom_line(size = 0.5) +
-    scale_x_date(date_breaks = interval, date_labels = "%m/%y") +
-    scale_y_continuous(breaks = pretty_breaks(n = 10),
-                       labels = function(x) sprintf("10^%.0f", x),
-                       limits = c(NA, NA)) +  # Allow ggplot to set appropriate limits
-    scale_fill_brewer(palette = "Set2") +
-    scale_color_brewer(palette = "Set2") +
-    labs(y = y_axis_label) +
-    theme(
-      axis.title = element_text(size = 16),
-      axis.text = element_text(size = 14),
-      legend.position = "bottom",
-      legend.title = element_blank(),
-      axis.title.x = element_blank()
-    )
-  
-  return(plot)
-}
-
-
-
-generate_multiple_plots_2020_Nanorglog <- function(codeplas_values, aqua_components, y_label = NULL) {
-  plots <- map(codeplas_values, ~generate_plot_2020_Nanorglog(.x, aqua_components, y_label))
-  names(plots) <- codeplas_values
-  return(plots)
-}
-
-
 # 2022-2024
 plots_N_anorg <- generate_multiple_plots_Nanorg(reeks_2022_2024, c("NH4_N", "NO3_N", "NO2_N"), "mg N/l")
 walk2(plots_N_anorg, names(plots_N_anorg),
@@ -2113,81 +1593,8 @@ walk2(plots_N_anorg_2020_comp_log, names(plots_N_anorg_2020_comp_log),
       ~ggsave(filename = paste0("./exports/Nanorg_componentenlog2020/", .y, "_", "Nanorg_componentenlog2020", ".png"), plot = .x, width = 10, height = 6))
 ```
 
-## aparte code N_organisch (TN - Nanorg)
+## N_organisch (TN - Nanorg)
 ```{r}
-generate_plot_Norg <- function(codeplas_value, aqua_components, y_label = NULL) {
-  filtered_data <- data_met_N_anorg %>%
-    filter(AquaComponent %in% aqua_components & meetreeks == "2022-2024" & codeplas == codeplas_value) %>%
-    mutate(AquaComponent = factor(AquaComponent, levels = c("TN", "N_anorg")))  # Set order
-  
-  n_results <- nrow(filtered_data)
-  interval <- if(n_results > 12) "2 months" else "1 month"
-  
-  y_axis_label <- if(is.null(y_label)) "ResultCalc" else y_label
-  
-  plot <- filtered_data %>%
-    ggplot(aes(x = FieldSamplingDate, y = ResultCalc, fill = AquaComponent)) +
-    geom_area(position = "identity", alpha = 0.6) +
-    geom_line(aes(color = AquaComponent), size = 1) +  # Add lines
-    scale_x_date(date_breaks = interval, date_labels = "%m/%y") +
-    scale_y_continuous(breaks = pretty_breaks(n = 10)) +
-    scale_fill_manual(values = c("TN" = "#66C2A5", "N_anorg" = "#FC8D62")) +  # Custom colors
-    scale_color_manual(values = c("TN" = "#66C2A5", "N_anorg" = "#FC8D62")) +  # Match line colors
-    labs(y = y_axis_label) +
-    theme(
-      axis.title = element_text(size = 16),
-      axis.text = element_text(size = 14),
-      legend.position = "bottom",
-      legend.title = element_blank(),
-      axis.title.x = element_blank()
-    )
-  
-  return(plot)
-}
-
-generate_multiple_plots_Norg <- function(codeplas_values, aqua_components, y_label = NULL) {
-  plots <- map(codeplas_values, ~generate_plot_Norg(.x, aqua_components, y_label))
-  names(plots) <- codeplas_values
-  return(plots)
-}
-
-#<2020
-generate_plot_Norg_2020 <- function(codeplas_value, aqua_components, y_label = NULL) {
-  filtered_data <- data_met_N_anorg %>%
-    filter(AquaComponent %in% aqua_components & meetreeks == "<2020" & codeplas == codeplas_value) %>%
-    mutate(AquaComponent = factor(AquaComponent, levels = c("TN", "N_anorg")))  # Set order
-  
-  n_results <- nrow(filtered_data)
-  interval <- if(n_results > 12) "2 months" else "1 month"
-  
-  y_axis_label <- if(is.null(y_label)) "ResultCalc" else y_label
-  
-  plot <- filtered_data %>%
-    ggplot(aes(x = FieldSamplingDate, y = ResultCalc, fill = AquaComponent)) +
-    geom_area(position = "identity", alpha = 0.6) +
-    geom_line(aes(color = AquaComponent), size = 1) +  # Add lines
-    scale_x_date(date_breaks = interval, date_labels = "%m/%y") +
-    scale_y_continuous(breaks = pretty_breaks(n = 10)) +
-    scale_fill_manual(values = c("TN" = "#66C2A5", "N_anorg" = "#FC8D62")) +  # Custom colors
-    scale_color_manual(values = c("TN" = "#66C2A5", "N_anorg" = "#FC8D62")) +  # Match line colors
-    labs(y = y_axis_label) +
-    theme(
-      axis.title = element_text(size = 16),
-      axis.text = element_text(size = 14),
-      legend.position = "bottom",
-      legend.title = element_blank(),
-      
-    )
-  
-  return(plot)
-}
-
-generate_multiple_plots_Norg_2020 <- function(codeplas_values, aqua_components, y_label = NULL) {
-  plots <- map(codeplas_values, ~generate_plot_Norg_2020(.x, aqua_components, y_label))
-  names(plots) <- codeplas_values
-  return(plots)
-}
-
 # 2022-2024
 plots_N_org <- generate_multiple_plots_Norg(reeks_2022_2024, c("TN", "N_anorg"), "mg N/l")
 walk2(plots_N_org, names(plots_N_org),
@@ -2202,548 +1609,110 @@ walk2(plots_N_org_2020, names(plots_N_org_2020),
 
 
 # EXPORTS VOOR TOETSING MKN
-## Zuurtegraad
+## gemiddeldes
 ```{r}
-data_TVG %>%
-  filter(AquaComponent %in% "pH_veld") %>%
-  group_by(codeplas) %>%
-  summarise(pH_min = min(ResultCalc, na.rm = TRUE),
-            pH_max = max(ResultCalc, na.rm = TRUE),
-            pH_bereik = paste(min(ResultCalc, na.rm = TRUE), "-", max(ResultCalc, na.rm = TRUE))) %>%
-  write.csv2(file = "./exports/pH.csv")
-
-data_TVG %>%
-  filter(AquaComponent %in% "pH_veld" & meetreeks == "2022-2024") %>%
-  group_by(codeplas) %>%
-  summarise(pH_min = min(ResultCalc, na.rm = TRUE),
-            pH_max = max(ResultCalc, na.rm = TRUE),
-            pH_bereik = paste(min(ResultCalc, na.rm = TRUE), "-", max(ResultCalc, na.rm = TRUE))) %>%
-  write.csv2(file = "./exports/pH2224.csv")
-
-data_TVG %>%
-  filter(AquaComponent %in% "pH_veld" & meetreeks == "2022-2023" & codeplas %in% reeks_2022_2023) %>%
-  group_by(codeplas) %>%
-  summarise(pH_min = min(ResultCalc, na.rm = TRUE),
-            pH_max = max(ResultCalc, na.rm = TRUE),
-            pH_bereik = paste(min(ResultCalc, na.rm = TRUE), "-", max(ResultCalc, na.rm = TRUE))) %>%
-  write.csv2(file = "./exports/pH22_23.csv")
-```
-
-## Helderheid
-```{r}
-# Secchi-diepte (SD_veld)
-data_TVG %>%
-  filter(AquaComponent %in% "SD_veld" & meetreeks == "2022-2024") %>%
-  mutate(month = format(FieldSamplingDate, "%m")) %>%
-  filter(month %in% c("04", "05", "06", "07", "08", "09")) %>%
-  group_by(codeplas) %>%
-  summarise(SD_zhjgem = mean(ResultCalc, na.rm = TRUE)) %>%
-  write.csv2(file = "./exports/SD_zhj_2224.csv")
-
-data_TVG %>%
-  filter(AquaComponent %in% "SD_veld" & meetreeks == "2022-2023" & codeplas %in% reeks_2022_2023) %>%
-  mutate(month = format(FieldSamplingDate, "%m")) %>%
-  filter(month %in% c("04", "05", "06", "07", "08", "09")) %>%
-  group_by(codeplas) %>%
-  summarise(SD_zhjgem = mean(ResultCalc, na.rm = TRUE)) %>%
-  write.csv2(file = "./exports/SD_zhj_2022-23.csv")
-
-# Waterdiepte (WD_diepte)
-data_TVG %>%
-  filter(AquaComponent %in% "WD_veld" & meetreeks == "2022-2024") %>%
-  group_by(codeplas) %>%
-  summarise(WD_gem = mean(ResultCalc, na.rm = TRUE),
-            WD_max = max(ResultCalc, na.rm = TRUE),
-            WD_min = min(ResultCalc, na.rm = TRUE)) %>%
-  write.csv2(file = "./exports/WD2224.csv")
-
-data_TVG %>%
-  filter(AquaComponent %in% "WD_veld" & meetreeks == "2022-2024") %>%
-  mutate(month = format(FieldSamplingDate, "%m")) %>%
-  filter(month %in% c("04", "05", "06", "07", "08", "09")) %>%
-  group_by(codeplas) %>%
-  summarise(SD_zhjgem = mean(ResultCalc, na.rm = TRUE)) %>%
-  write.csv2(file = "./exports/WD_zhj_2224.csv")
-
-data_TVG %>%
-  filter(AquaComponent %in% "WD_veld" & meetreeks == "2022-2023") %>%
-  mutate(month = format(FieldSamplingDate, "%m")) %>%
-  filter(month %in% c("04", "05", "06", "07", "08", "09")) %>%
-  group_by(codeplas) %>%
-  summarise(SD_zhjgem = mean(ResultCalc, na.rm = TRUE)) %>%
-  write.csv2(file = "./exports/WD_zhj_2022-23.csv")
-
-# Zwevende stof (ZS_105 en ZS_550)
-data_TVG %>%
-  filter(AquaComponent %in% "ZS_105" & meetreeks == "2022-2024" & seizoen == "zomer") %>%
-  group_by(codeplas) %>%
-  summarise(ZS105_zhjgem = mean(ResultCalc, na.rm = TRUE)) %>%
-  write.csv2(file = "./exports/ZS105_2224.csv")
-
-data_TVG %>%
-  filter(AquaComponent %in% "ZS_105" & meetreeks == "2022-2023" & codeplas %in% reeks_2022_2023) %>%
-  mutate(month = format(FieldSamplingDate, "%m")) %>%
-  filter(month %in% c("04", "05", "06", "07", "08", "09")) %>%
-  group_by(codeplas) %>%
-  summarise(ZS105_zhjgem = mean(ResultCalc, na.rm = TRUE)) %>%
-  write.csv2(file = "./exports/ZS105_2022-23.csv")
-
-data_TVG %>%
-  filter(AquaComponent %in% "ZS_550" & meetreeks == "2022-2024" & seizoen == "zomer") %>%
-  group_by(codeplas) %>%
-  summarise(ZS550_zhjgem = mean(ResultCalc, na.rm = TRUE)) %>%
-  write.csv2(file = "./exports/ZS550_2224.csv")
-
-data_TVG %>%
-  filter(AquaComponent %in% "ZS_550" & meetreeks == "2022-2023" & codeplas %in% reeks_2022_2023) %>%
-  mutate(month = format(FieldSamplingDate, "%m")) %>%
-  filter(month %in% c("04", "05", "06", "07", "08", "09")) %>%
-  group_by(codeplas) %>%
-  summarise(ZS550_zhjgem = mean(ResultCalc, na.rm = TRUE)) %>%
-  write.csv2(file = "./exports/ZS550_2022-23.csv")
-
-data_TVG %>%
-  filter(AquaComponent %in% "ZS_105") %>%
-  group_by(codeplas) %>%
-  summarise(ZS105_gem = mean(ResultCalc, na.rm = TRUE)) %>%
-  write.csv2(file = "./exports/ZS105_gem.csv")
-
-# Zwevende stof 105 boxplot
-data_TVG %>%
-  filter(AquaComponent == "ZS_105" & meetreeks == "2022-2024") %>%
-  ggplot(aes(x = ResultCalc, y = codeplas, colour = watertype)) +
-  geom_boxplot() +
-  xlab("Zwevende stof (mg/l 105°C)") +
-  facet_grid(watertype ~ ., scales = "free", space = "free_y") +
-  scale_x_continuous(breaks = pretty_breaks(n = 10))
-
-# Zwevende stof 550 boxplot
-data_TVG %>%
-  filter(AquaComponent == "ZS_550" & meetreeks == "2022-2024") %>%
-  ggplot(aes(x = ResultCalc, y = codeplas, colour = watertype)) +
-  geom_boxplot() +
-  xlab("Zwevende stof (mg/l 550°C)") +
-  facet_grid(watertype ~ ., scales = "free", space = "free_y") +
-  scale_x_continuous(breaks = pretty_breaks(n = 10))
-
-# Humuszuren (absorptie_440)
-data_TVG %>%
-  filter(AquaComponent %in% "absorptie_440") %>%
-  group_by(codeplas) %>%
-  summarise(ABS440_gem = mean(ResultCalc, na.rm = TRUE)) %>%
-  write.csv2(file = "./exports/abs440_gem.csv")
-
-data_TVG %>%
-  filter(AquaComponent %in% "absorptie_440" & meetreeks == "2022-2024" & seizoen == "zomer") %>%
-  group_by(codeplas) %>%
-  summarise(abs_zhjgem = mean(ResultCalc, na.rm = TRUE)) %>%
-  write.csv2(file = "./exports/abs_zhj_2224.csv")
-
-data_TVG %>%
-  filter(AquaComponent %in% "absorptie_440" & meetreeks == "2022-2023" & seizoen == "zomer") %>%
-  group_by(codeplas) %>%
-  summarise(abs_zhjgem = mean(ResultCalc, na.rm = TRUE)) %>%
-  write.csv2(file = "./exports/abs_zhj_2022-23.csv")
-
-# absorptie 440 nm
-data_TVG %>%
-  filter(AquaComponent == "absorptie_440" & meetreeks == "2022-2024") %>%
-  ggplot(aes(x = ResultCalc, y = codeplas, colour = watertype)) +
-  geom_boxplot() +
-  xlab("Absorptie 440 nm (ABS)") +
-  facet_grid(watertype ~ ., scales = "free", space = "free_y") +
-  scale_x_continuous(breaks = pretty_breaks(n = 10))
-
-# chlorofyl-a
-data_TVG %>%
-  filter(AquaComponent %in% "chl_a" & meetreeks == "2022-2024" & seizoen == "zomer") %>%
-  group_by(codeplas) %>%
-  summarise(chla_zhjgem = mean(ResultCalc, na.rm = TRUE)) %>%
-  write.csv2(file = "./exports/chl_a_zhj_2224.csv")
-
-data_TVG %>%
-  filter(AquaComponent %in% "chl_a" & meetreeks == "2022-2023" & codeplas %in% reeks_2022_2023) %>%
-  mutate(month = format(FieldSamplingDate, "%m")) %>%
-  filter(month %in% c("04", "05", "06", "07", "08", "09")) %>%
-  group_by(codeplas) %>%
-  summarise(chla_zhjgem = mean(ResultCalc, na.rm = TRUE)) %>%
-  write.csv2(file = "./exports/chl_a_zhj_2022-23.csv")
-
-```
-
-
-## Zuurstofcondities
-```{r}
-# concentratie
-data_TVG %>%
-  filter(AquaComponent %in% "O2_veld" & meetreeks == "2022-2024") %>%
-  group_by(codeplas) %>%
-  summarise(O2_10p = quantile(ResultCalc,probs = 0.1, na.rm = TRUE)) %>%
-  write.csv2(file = "./exports/O2_conc_2224.csv")
-data_TVG %>%
-  filter(AquaComponent %in% "O2_veld" & codeplas %in% reeks_2022_2023 & meetreeks == "2022-2023") %>%
-  group_by(codeplas) %>%
-  summarise(O2_10p = quantile(ResultCalc,probs = 0.1, na.rm = TRUE)) %>%
-  write.csv2(file = "./exports/O2_conc_2022-23.csv")
-
-# verzadiging
-data_TVG %>%
-  filter(AquaComponent %in% "O2verz"& meetreeks == "2022-2024") %>%
-  group_by(codeplas) %>%
-  summarise(O2_verz_max = max(ResultCalc, na.rm = TRUE)) %>%
-  write.csv2(file = "./exports/O2_verz_2224.csv")
-
-data_TVG %>%
-  filter(AquaComponent %in% "O2verz" & codeplas %in% reeks_2022_2023 & meetreeks == "2022-2023") %>%
-  group_by(codeplas) %>%
-  summarise(O2_verz_max = max(ResultCalc, na.rm = TRUE)) %>%
-  write.csv2(file = "./exports/O2_verz_2022-23.csv")
-
-```
-
-## Temperatuur
-```{r}
-data_TVG %>%
-  filter(AquaComponent %in% "T_veld") %>%
-  group_by(codeplas, meetreeks) %>%
-  summarise(Temp_max = max(ResultCalc, na.rm = TRUE)) %>%
-  write.csv2(file = "./exports/Temp_veld.csv")
-
-data_TVG %>%
-  filter(AquaComponent %in% "T_veld" & meetreeks == "2022-2024") %>%
-  group_by(codeplas) %>%
-  summarise(Temp_max = max(ResultCalc, na.rm = TRUE)) %>%
-  write.csv2(file = "./exports/Temp_veld2224.csv")
-
-data_TVG %>%
-  filter(AquaComponent %in% "T_veld" & meetreeks == "2022-2023" & codeplas %in% reeks_2022_2023) %>%
-  group_by(codeplas) %>%
-  summarise(Temp_max = max(ResultCalc, na.rm = TRUE)) %>%
-  write.csv2(file = "./exports/Temp_veld22_23.csv")
-
-```
-
-## Alkaliniteit, Natrium, Silicium, Calcium, Kalium, Magnesium
-```{r}
-# alkaliniteit
-data_TVG %>%
-  filter(AquaComponent %in% "alkaliniteit" & meetreeks == "2022-2024") %>%
-  group_by(codeplas) %>%
-  summarise(Alk_mean = mean(ResultCalc),
-            Alk_min = min(ResultCalc, na.rm = TRUE),
-            Alk_max = max(ResultCalc, na.rm = TRUE),
-            Alk_bereik = paste(min(ResultCalc, na.rm = TRUE), "-", max(ResultCalc, na.rm = TRUE))) %>%
-  write.csv2(file = "./exports/Alka_2224.csv")
-
-data_TVG %>%
-  filter(AquaComponent %in% "alkaliniteit" & meetreeks == "2022-2023" & codeplas %in% reeks_2022_2023) %>%
-  group_by(codeplas) %>%
-  summarise(Alk_mean = mean(ResultCalc),
-            Alk_min = min(ResultCalc, na.rm = TRUE),
-            Alk_max = max(ResultCalc, na.rm = TRUE),
-            Alk_bereik = paste(min(ResultCalc, na.rm = TRUE), "-", max(ResultCalc, na.rm = TRUE))) %>%
-  write.csv2(file = "./exports/Alka_22-23.csv")
-
-# Silicium
-data_TVG %>%
-  filter(AquaComponent %in% "Si" & meetreeks == "2022-2024") %>%
-  group_by(codeplas) %>%
-  summarise(Si_gem = mean(ResultCalc, na.rm = TRUE)) %>%
-  write.csv2(file = "./exports/Si_2224.csv")
-
-data_TVG %>%
-  filter(AquaComponent %in% "Si" & meetreeks == "2022-2023" & codeplas %in% reeks_2022_2023)  %>%
-  group_by(codeplas) %>%
-  summarise(Si_gem = mean(ResultCalc, na.rm = TRUE)) %>%
-  write.csv2(file = "./exports/Si_22-23.csv")
-
-
-# Calcium
-data_TVG %>%
-  filter(AquaComponent %in% "Ca" & meetreeks == "2022-2024") %>%
-  group_by(codeplas) %>%
-  summarise(Ca_gem = mean(ResultCalc, na.rm = TRUE)) %>%
-  write.csv2(file = "./exports/Ca_2224.csv")
-data_TVG %>%
-  filter(AquaComponent %in% "Ca" & meetreeks == "2022-2023" & codeplas %in% reeks_2022_2023)  %>%
-  group_by(codeplas) %>%
-  summarise(Ca_gem = mean(ResultCalc, na.rm = TRUE)) %>%
-  write.csv2(file = "./exports/Ca_22-23.csv")
-
-## Calcium max zomer
-data_TVG %>%
-  filter(AquaComponent %in% "Ca" & meetreeks == "2022-2024" & seizoen == "zomer") %>%
-  group_by(codeplas) %>%
-  summarise(Ca_maxzomer = max(ResultCalc, na.rm = TRUE)) %>%
-  write.csv2(file = "./exports/Ca_maxzomer2224.csv")
-
-data_TVG %>%
-  filter(AquaComponent %in% "Ca" & meetreeks == "2022-2023" & codeplas %in% reeks_2022_2023 & seizoen == "zomer")  %>%
-  group_by(codeplas) %>%
-  summarise(Ca_maxzomer = max(ResultCalc, na.rm = TRUE)) %>%
-  write.csv2(file = "./exports/Ca_maxzomer22-23.csv")
-
-# Kalium
-data_TVG %>%
-  filter(AquaComponent %in% "K" & meetreeks == "2022-2024") %>%
-  group_by(codeplas) %>%
-  summarise(K_gem = mean(ResultCalc, na.rm = TRUE)) %>%
-  write.csv2(file = "./exports/K_2224.csv")
-
-data_TVG %>%
-  filter(AquaComponent %in% "K" & meetreeks == "2022-2023" & codeplas %in% reeks_2022_2023)  %>%
-  group_by(codeplas) %>%
-  summarise(K_gem = mean(ResultCalc, na.rm = TRUE)) %>%
-  write.csv2(file = "./exports/K_22-23.csv")
-
-
-# Magnesium
-data_TVG %>%
-  filter(AquaComponent %in% "Mg" & meetreeks == "2022-2024") %>%
-  group_by(codeplas) %>%
-  summarise(Mg_gem = mean(ResultCalc, na.rm = TRUE)) %>%
-  write.csv2(file = "./exports/Mg_2224.csv")
-
-data_TVG %>%
-  filter(AquaComponent %in% "Mg" & meetreeks == "2022-2023" & codeplas %in% reeks_2022_2023)  %>%
-  group_by(codeplas) %>%
-  summarise(Mg_gem = mean(ResultCalc, na.rm = TRUE)) %>%
-  write.csv2(file = "./exports/Mg_22-23.csv")
-
-```
-
-
-## Zoutparameters
-```{r}
-# Geleidbaarheid
-data_TVG %>%
-  filter(AquaComponent %in% "EGV25_veld" & meetreeks == "2022-2024")  %>%
-  group_by(codeplas) %>%
-  summarise(EGV_90p = quantile(ResultCalc, probs = 0.9, na.rm = TRUE)) %>%
-  write.csv2(file = "./exports/EGV2224.csv")
-
-data_TVG %>%
-  filter(AquaComponent %in% "EGV25_veld" & meetreeks == "2022-2023" & codeplas %in% reeks_2022_2023)  %>%
-  group_by(codeplas) %>%
-  summarise(EGV_90p = quantile(ResultCalc, probs = 0.9, na.rm = TRUE)) %>%
-  write.csv2(file = "./exports/EGV2022-23.csv")
-
-# Sulfaat (SO4)
-data_TVG %>%
-  filter(AquaComponent %in% "SO4" & meetreeks == "2022-2024") %>%
-  group_by(codeplas) %>%
-  summarise(SO4_gem = mean(ResultCalc, na.rm = TRUE)) %>%
-  write.csv2(file = "./exports/SO4_2224.csv")
-data_TVG %>%
-  filter(AquaComponent %in% "SO4" & meetreeks == "2022-2023" & codeplas %in% reeks_2022_2023)  %>%
-  group_by(codeplas) %>%
-  summarise(SO4_gem = mean(ResultCalc, na.rm = TRUE)) %>%
-  write.csv2(file = "./exports/SO4_22-23.csv")
-
-
-# Natrium
-data_TVG %>%
-  filter(AquaComponent %in% "Na" & meetreeks == "2022-2024") %>%
-  group_by(codeplas) %>%
-  summarise(Na_gem = mean(ResultCalc, na.rm = TRUE)) %>%
-  write.csv2(file = "./exports/Na_2224.csv")
-
-data_TVG %>%
-  filter(AquaComponent %in% "Na" & meetreeks == "2022-2023" & codeplas %in% reeks_2022_2023)  %>%
-  group_by(codeplas) %>%
-  summarise(Na_gem = mean(ResultCalc, na.rm = TRUE)) %>%
-  write.csv2(file = "./exports/Na_22-23.csv")
-
-## Natrium max zomer
-data_TVG %>%
-  filter(AquaComponent %in% "Na" & meetreeks == "2022-2024" & seizoen == "zomer") %>%
-  group_by(codeplas) %>%
-  summarise(Na_maxzhj = max(ResultCalc, na.rm = TRUE)) %>%
-  write.csv2(file = "./exports/Na_maxzomer2224.csv")
-
-data_TVG %>%
-  filter(AquaComponent %in% "Na" & meetreeks == "2022-2023" & codeplas %in% reeks_2022_2023)  %>%
-  mutate(month = format(FieldSamplingDate, "%m")) %>%
-  filter(month %in% c("04", "05", "06", "07", "08", "09")) %>%
-  group_by(codeplas) %>%
-  summarise(Na_maxzomer = max(ResultCalc, na.rm = TRUE)) %>%
-  write.csv2(file = "./exports/Na_maxzomer22-23.csv")
-
-data_TVG %>%
-  filter(AquaComponent %in% "Na") %>%
-  mutate(month = format(FieldSamplingDate, "%m")) %>%
-  filter(month %in% c("04", "05", "06", "07", "08", "09")) %>%
-  group_by(codeplas) %>%
-  summarise(Na_max_zomer = max(ResultCalc, na.rm = TRUE)) %>%
-  write.csv2(file = "./exports/Na_max_zomer.csv")
-
-# Chloride
-data_TVG %>%
-  filter(AquaComponent %in% "Cl" & meetreeks == "2022-2024") %>%
-  group_by(codeplas) %>%
-  summarise(Cl_max = max(ResultCalc, na.rm = TRUE),
-            Cl_90p = quantile(ResultCalc, probs = 0.9, na.rm = TRUE)) %>%
-  write.csv2(file = "./exports/Cl_2224.csv")
-
-data_TVG %>%
-  filter(AquaComponent %in% "Cl" & meetreeks == "2022-2023" & codeplas %in% reeks_2022_2023) %>%
-  group_by(codeplas) %>%
-  summarise(Cl_max = max(ResultCalc, na.rm = TRUE),
-            Cl_90p = quantile(ResultCalc, probs = 0.9, na.rm = TRUE)) %>%
-  write.csv2(file = "./exports/Cl_22-23.csv")
-
-## Chloride max zomer
-data_TVG %>%
-  filter(AquaComponent %in% "Cl" & meetreeks == "2022-2024" & seizoen == "zomer") %>%
-  group_by(codeplas) %>%
-  summarise(Cl_maxzhj = max(ResultCalc, na.rm = TRUE)) %>%
-  write.csv2(file = "./exports/Cl_maxzomer2224.csv")
-
-data_TVG %>%
-  filter(AquaComponent %in% "Cl" & meetreeks == "2022-2023" & codeplas %in% reeks_2022_2023)  %>%
-  mutate(month = format(FieldSamplingDate, "%m")) %>%
-  filter(month %in% c("04", "05", "06", "07", "08", "09")) %>%
-  group_by(codeplas) %>%
-  summarise(Cl_maxzomer = max(ResultCalc, na.rm = TRUE)) %>%
-  write.csv2(file = "./exports/Cl_maxzomer22-23.csv")
-
-# saliniteit
-data_TVG %>%
-  filter(AquaComponent %in% "sal_veld") %>%
-  group_by(codeplas) %>%
-  summarise(sal_max = max(ResultCalc, na.rm = TRUE)) %>%
-  write.csv2(file = "./exports/Sal.csv")
-```
-
-
-## Nutriënten
-```{r}
-# Totale Stikstof - TN & Totale Fosfor - TP
-data_TVG %>%
-  filter(AquaComponent %in% c("TN", "TP")) %>%
-  mutate(month = format(FieldSamplingDate, "%m")) %>%
-  filter(month %in% c("04", "05", "06", "07", "08", "09")) %>%
+avg_data <- data_TVG %>%
+  filter(meetreeks == "2022-2024") %>% 
   group_by(codeplas, AquaComponent) %>%
-  summarise(zhjgem = mean(ResultCalc)) %>%
-  write.csv2(file = "./exports/TN_TP.csv")
+  summarise(gemiddelde = mean(ResultCalc, na.rm = TRUE)) %>%
+  ungroup()
 
-data_TVG %>%
-  filter(AquaComponent %in% c("TN", "TP") & meetreeks == "2022-2024" & seizoen == "zomer") %>%
-  group_by(codeplas, AquaComponent) %>%
-  summarise(zhjgem = mean(ResultCalc, na.rm = TRUE)) %>%
-  write.csv2(file = "./exports/TN_TP_zhj_2224.csv")
+wide_data <- avg_data %>%
+  pivot_wider(names_from = AquaComponent, values_from = gemiddelde)
 
-data_TVG %>%
-  filter(AquaComponent %in% c("TN", "TP") & meetreeks == "2022-2023" & codeplas %in% reeks_2022_2023) %>%
-  mutate(month = format(FieldSamplingDate, "%m")) %>%
-  filter(month %in% c("04", "05", "06", "07", "08", "09")) %>%
-  group_by(codeplas, AquaComponent) %>%
-  summarise(zhjgem = mean(ResultCalc, na.rm = TRUE)) %>%
-  write.csv2(file = "./exports/TN_TP_zhj_22-23.csv")
-
-# NO3-N
-data_TVG %>%
-  filter(AquaComponent %in% "NO3_N" & meetreeks == "2022-2024" & seizoen == "zomer") %>%
-  group_by(codeplas) %>%
-  summarise(NO3_N_zhj = mean(ResultCalc)) %>%
-  write.csv2(file = "./exports/NO3_N_2224.csv")
-
-data_TVG %>%
-  filter(AquaComponent %in% "NO3_N" & meetreeks == "2022-2023" & codeplas %in% reeks_2022_2023) %>%
-  mutate(month = format(FieldSamplingDate, "%m")) %>%
-  filter(month %in% c("04", "05", "06", "07", "08", "09")) %>%
-  group_by(codeplas) %>%
-  summarise(NO3_N_zhj = mean(ResultCalc)) %>%
-  write.csv2(file = "./exports/NO3_N_22-23.csv")
-
-# NO2-N
-data_TVG %>%
-  filter(AquaComponent %in% "NO2_N" & meetreeks == "2022-2024" & seizoen == "zomer") %>%
-  group_by(codeplas) %>%
-  summarise(NO2_N_zhj = mean(ResultCalc)) %>%
-  write.csv2(file = "./exports/NO2_N_2224.csv")
-
-data_TVG %>%
-  filter(AquaComponent %in% "NO2_N" & meetreeks == "2022-2023" & codeplas %in% reeks_2022_2023) %>%
-  mutate(month = format(FieldSamplingDate, "%m")) %>%
-  filter(month %in% c("04", "05", "06", "07", "08", "09")) %>%
-  group_by(codeplas) %>%
-  summarise(NO2_N_zhj = mean(ResultCalc)) %>%
-  write.csv2(file = "./exports/NO2_N_22-23.csv")
-
-## Van Calster NO2_N gemiddelde & maximum
-data_TVG %>%
-  filter(AquaComponent %in% "NO2_N" & meetreeks == "2022-2024") %>%
-  group_by(codeplas) %>%
-  summarise(NO2_Ngem = mean(ResultCalc),
-            NO2_Nmax = max(ResultCalc)) %>%
-  write.csv2(file = "./exports/NO2_Ngemmax_2224.csv")
-
-data_TVG %>%
-  filter(AquaComponent %in% "NO2_N" & meetreeks == "2022-2023" & codeplas %in% reeks_2022_2023) %>%
-  group_by(codeplas) %>%
-  summarise(NO2_Ngem = mean(ResultCalc),
-            NO2_Nmax = max(ResultCalc)) %>%
-  write.csv2(file = "./exports/NO2_Ngemmax_22-23.csv")
-
-# NH4-N
-data_TVG %>%
-  filter(AquaComponent %in% "NH4_N" & meetreeks == "2022-2024" & seizoen == "zomer") %>%
-  group_by(codeplas) %>%
-  summarise(NH4_N_zhj = mean(ResultCalc)) %>%
-  write.csv2(file = "./exports/NH4_N_2224.csv")
-
-data_TVG %>%
-  filter(AquaComponent %in% "NH4_N" & meetreeks == "2022-2023" & codeplas %in% reeks_2022_2023) %>%
-  mutate(month = format(FieldSamplingDate, "%m")) %>%
-  filter(month %in% c("04", "05", "06", "07", "08", "09")) %>%
-  group_by(codeplas) %>%
-  summarise(NH4_N_zhj = mean(ResultCalc)) %>%
-  write.csv2(file = "./exports/NH4_N_22-23.csv")
-
-# PO4-P
-data_TVG %>%
-  filter(AquaComponent %in% "PO4_P" & meetreeks == "2022-2024" & seizoen == "zomer") %>%
-  group_by(codeplas) %>%
-  summarise(PO4_P_zhj = mean(ResultCalc)) %>%
-  write.csv2(file = "./exports/PO4_P_2224.csv")
-
-data_TVG %>%
-  filter(AquaComponent %in% "PO4_P" & meetreeks == "2022-2023" & codeplas %in% reeks_2022_2023) %>%
-  mutate(month = format(FieldSamplingDate, "%m")) %>%
-  filter(month %in% c("04", "05", "06", "07", "08", "09")) %>%
-  group_by(codeplas) %>%
-  summarise(PO4_P_zhj = mean(ResultCalc)) %>%
-  write.csv2(file = "./exports/PO4_P_22-23.csv")
-
+# Export to CSV
+write.csv2(wide_data, "./exports/csv's/gemiddeldes.csv", row.names = FALSE)
 ```
 
-## Anorganische en organische stikstof
-
+## zomerhalfjaargemiddelde
 ```{r}
-# zomerhalfjaargemiddelde
-data_met_N_anorg %>%
-  filter(AquaComponent %in% "N_anorg") %>%
-  mutate(month = format(FieldSamplingDate, "%m")) %>%
-  filter(month %in% c("04", "05", "06", "07", "08", "09")) %>%
-  group_by(codeplas) %>%
-  summarise(zhjgem = mean(ResultCalc)) %>%
-  write.csv2(file = "./exports/N_anorg_zhj.csv")
+zhjgem_data <- data_TVG %>% 
+  filter(meetreeks == "2022-2024" & seizoen == "zomer") %>%
+  group_by(codeplas, AquaComponent) %>%
+  summarise(zhjgemiddelde = mean(ResultCalc, na.rm = TRUE)) %>%
+  ungroup()
 
-# maximum (van Calster)
-data_met_N_anorg %>%
-  filter(AquaComponent %in% "N_anorg" & meetreeks == "2022-2024" ) %>%
-  group_by(codeplas) %>%
-  summarise(N_anorg_max = max(ResultCalc, na.rm = TRUE)) %>%
-  write.csv2(file = "./exports/N_anorg_max2224.csv")
+wide_data_zhj <- zhjgem_data %>%
+  pivot_wider(names_from = AquaComponent, values_from = zhjgemiddelde)
 
-data_met_N_anorg %>%
-  filter(AquaComponent %in% "N_anorg" & meetreeks == "2022-2023" & codeplas %in% reeks_2022_2023) %>%
-  group_by(codeplas) %>%
-  summarise(N_anorg_max = max(ResultCalc, na.rm = TRUE)) %>%
-  write.csv2(file = "./exports/N_anorg_max2022-23.csv")
+# Export to CSV
+write.csv2(wide_data_zhj, "./exports/csv's/zomerhalfjaargemiddeldes.csv", row.names = FALSE)
 ```
 
+## 90-percentiel
+```{r}
+p90_data <- data_TVG %>% 
+  filter(meetreeks == "2022-2024") %>%
+  group_by(codeplas, AquaComponent) %>%
+  summarise(p90 = quantile(ResultCalc, probs = 0.90, na.rm = TRUE)) %>%
+  ungroup()
+
+wide_data_p90 <- p90_data %>%
+  pivot_wider(names_from = AquaComponent, values_from = p90)
+
+# Export to CSV
+write.csv2(wide_data_p90, "./exports/csv's/90-percentielen.csv", row.names = FALSE)
+```
+
+## 10-percentiel
+```{r}
+p10_data <- data_TVG %>% 
+  filter(meetreeks == "2022-2024") %>%
+  group_by(codeplas, AquaComponent) %>%
+  summarise(p10 = quantile(ResultCalc, probs = 0.10, na.rm = TRUE)) %>%
+  ungroup()
+
+wide_data_p10 <- p10_data %>%
+  pivot_wider(names_from = AquaComponent, values_from = p10)
+
+# Export to CSV
+write.csv2(wide_data_p10, "./exports/csv's/10-percentielen.csv", row.names = FALSE)
+```
+
+## minimum
+```{r}
+min_data <- data_TVG %>% 
+  filter(meetreeks == "2022-2024") %>%
+  group_by(codeplas, AquaComponent) %>%
+  summarise(min = min(ResultCalc)) %>%
+  ungroup()
+
+wide_data_min <- min_data %>%
+  pivot_wider(names_from = AquaComponent, values_from = min)
+
+# Export to CSV
+write.csv2(wide_data_min, "./exports/csv's/minimum.csv", row.names = FALSE)
+```
+
+## maximum
+```{r}
+max_data <- data_TVG %>% 
+  filter(meetreeks == "2022-2024") %>%
+  group_by(codeplas, AquaComponent) %>%
+  summarise(max = max(ResultCalc)) %>%
+  ungroup()
+
+wide_data_max <- max_data %>%
+  pivot_wider(names_from = AquaComponent, values_from = max)
+
+# Export to CSV
+write.csv2(wide_data_max, "./exports/csv's/maximum.csv", row.names = FALSE)
+```
+
+## maximum (zomer)
+```{r}
+max_data_zomer <- data_TVG %>% 
+  filter(meetreeks == "2022-2024" & seizoen == "zomer") %>% 
+  group_by(codeplas, AquaComponent) %>%
+  summarise(max_zomer = max(ResultCalc)) %>%
+  ungroup()
+
+wide_data_maxzomer <- max_data_zomer %>%
+  pivot_wider(names_from = AquaComponent, values_from = max_zomer)
+
+# Export to CSV
+write.csv2(wide_data_maxzomer, "./exports/csv's/maximum_zomer.csv", row.names = FALSE)
+```
 
 # MAUCHA
 
