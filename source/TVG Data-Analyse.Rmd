@@ -112,7 +112,7 @@ colnames(meetreeksen) <- c("codeplas", "2024", "2022-2023", "<2022", "<2022_jaar
 # reeks van 2022-2024
 reeks_2022_2024 <- meetreeksen %>%
   filter(`2024` == "ja" | `2022-2023` == "ja") %>% pull(codeplas)
-# historische metingen (die in 2022-2024 gemeten zijn)
+# historische metingen (die ook in 2022-2024 gemeten zijn)
 reeks_2020 <- c("ANTTUR0304", "ANTTUR0301", "ANTTUR0296", "ANTTUR0094", "ANTTUR0082", "ANTTUR0065", "ANTRAV0293", "ANTRAV0230", "ANTRAV0052","ANTOTH0324", "ANTOTH0306", "ANTOTH0271")
 ```
 
@@ -1121,7 +1121,7 @@ grenswaarden_Cl <- list(
   "Zs" = 20
 )
 
-plots_Cl2020 <- generate_multiple_plots_2020(reeks_2020, "Cl", grenswaarden_Cl, "Chloride (mg/l)")
+plots_Cl2020 <- generate_multiple_plots(reeks_2020, "Cl", "<2020", y_label = "Chloride-concentratie (mg/l)", grenswaarden_Cl)
 walk2(plots_Cl2020, names(plots_Cl2020),
       ~ggsave(filename = paste0("./exports/Chloride2020/", .y, "_", "Cl2020", ".png"), plot = .x, width = 10, height = 6))
 
@@ -1134,7 +1134,7 @@ grenswaarden_EGV <- list(
   "Zs" = 100
 )
 
-plots_EGV <- generate_multiple_plots_2020(reeks_2020, "EGV25_veld", grenswaarden_EGV, "Elektrische geleidbaarheid (µS/cm)")
+plots_EGV <- generate_multiple_plots(reeks_2020, "EGV25_veld","<2020", y_label = "Elektrische geleidbaarheid (µS/cm)", grenswaarden_EGV)
 walk2(plots_EGV, names(plots_EGV),
       ~ggsave(filename = paste0("./exports/Elektrische_geleidbaarheid2020/", .y, "_", "EGV2020", ".png"), plot = .x, width = 10, height = 6))
 
